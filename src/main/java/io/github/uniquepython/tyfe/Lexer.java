@@ -291,4 +291,38 @@ public class Lexer {
         throw new LexerError.IllegalCharacter(String.valueOf(peek()), new Span(start, start + 1));
     }
 
+    private Token nextToken() {
+        skipWhitespaceAndComments();
+
+        if (isAtEnd())
+            return new Token(TokenKind.Sentinel.EOF, new Span(position, position));
+
+        char c = peek();
+
+        if (isIdentifierStart(c))
+            return lexIdentifierOrKeyword();
+
+        if (isDigit(c))
+            return lexNumber();
+
+        if (c == '\'')
+            return lexChar();
+
+        return lexSymbol();
+    }
+
+    public List<Token> lex() {
+        List<Token> tokens = new ArrayList<>();
+
+        while (true) {
+            Token token = nextToken();
+            tokens.add(token);
+
+            if (token.kind() == TokenKind.Sentinel.EOF)
+                break;
+        }
+
+        return tokens;
+    }
+
 }
