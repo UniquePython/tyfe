@@ -1,4 +1,7 @@
-package io.github.uniquepython.tyfe;
+package io.github.uniquepython.tyfe.literal;
+
+import io.github.uniquepython.tyfe.common.Span;
+import io.github.uniquepython.tyfe.common.TyfeError;
 
 public abstract sealed class LiteralizerError extends TyfeError
         permits LiteralizerError.IntegerOverflow,

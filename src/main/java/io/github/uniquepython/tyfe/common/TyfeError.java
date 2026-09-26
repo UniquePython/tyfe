@@ -1,4 +1,4 @@
-package io.github.uniquepython.tyfe;
+package io.github.uniquepython.tyfe.common;
 
 import java.util.Objects;
 

@@ -1,6 +1,10 @@
-package io.github.uniquepython.tyfe;
+package io.github.uniquepython.tyfe.literal;
 
 import java.util.Objects;
+
+import io.github.uniquepython.tyfe.common.Span;
+import io.github.uniquepython.tyfe.lexer.Token;
+import io.github.uniquepython.tyfe.lexer.TokenKind;
 
 public record LiteralizedToken(TokenKind kind, Span span, LiteralValue value) {
 

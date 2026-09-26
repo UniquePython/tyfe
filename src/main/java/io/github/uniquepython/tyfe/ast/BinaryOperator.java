@@ -1,4 +1,4 @@
-package io.github.uniquepython.tyfe;
+package io.github.uniquepython.tyfe.ast;
 
 public sealed interface BinaryOperator
         permits BinaryOperator.Arithmetic, BinaryOperator.Comparison, BinaryOperator.Logical {

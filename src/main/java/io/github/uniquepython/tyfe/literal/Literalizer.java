@@ -1,7 +1,10 @@
-package io.github.uniquepython.tyfe;
+package io.github.uniquepython.tyfe.literal;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import io.github.uniquepython.tyfe.lexer.Token;
+import io.github.uniquepython.tyfe.lexer.TokenKind;
 
 public final class Literalizer {
 

@@ -1,4 +1,7 @@
-package io.github.uniquepython.tyfe;
+package io.github.uniquepython.tyfe.lexer;
+
+import io.github.uniquepython.tyfe.common.Span;
+import io.github.uniquepython.tyfe.common.TyfeError;
 
 public abstract sealed class LexerError extends TyfeError
         permits LexerError.IllegalCharacter,

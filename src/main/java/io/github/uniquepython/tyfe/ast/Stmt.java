@@ -1,6 +1,8 @@
-package io.github.uniquepython.tyfe;
+package io.github.uniquepython.tyfe.ast;
 
 import java.util.Objects;
+
+import io.github.uniquepython.tyfe.common.Span;
 
 public sealed interface Stmt
         permits Stmt.Declaration, Stmt.Assignment, Stmt.ExpressionStatement, Stmt.Produce, Stmt.Stop, Stmt.Skip {

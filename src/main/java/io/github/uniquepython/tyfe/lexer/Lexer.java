@@ -1,8 +1,10 @@
-package io.github.uniquepython.tyfe;
+package io.github.uniquepython.tyfe.lexer;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import io.github.uniquepython.tyfe.common.Span;
 
 public class Lexer {
 

@@ -1,4 +1,4 @@
-package io.github.uniquepython.tyfe;
+package io.github.uniquepython.tyfe.lexer;
 
 public sealed interface TokenKind
         permits TokenKind.Keyword, TokenKind.Literal, TokenKind.Identifier, TokenKind.Operator, TokenKind.Punctuation,

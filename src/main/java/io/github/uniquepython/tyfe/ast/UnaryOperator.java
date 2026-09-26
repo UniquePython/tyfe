@@ -1,4 +1,4 @@
-package io.github.uniquepython.tyfe;
+package io.github.uniquepython.tyfe.ast;
 
 public sealed interface UnaryOperator permits UnaryOperator.Arithmetic, UnaryOperator.Logical {
 

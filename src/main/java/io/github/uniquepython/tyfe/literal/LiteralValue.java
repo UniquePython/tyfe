@@ -1,4 +1,4 @@
-package io.github.uniquepython.tyfe;
+package io.github.uniquepython.tyfe.literal;
 
 public sealed interface LiteralValue permits LiteralValue.IntValue, LiteralValue.FloatValue, LiteralValue.CharValue,
         LiteralValue.BoolValue, LiteralValue.None {

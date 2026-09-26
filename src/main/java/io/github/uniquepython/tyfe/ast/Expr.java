@@ -1,7 +1,10 @@
-package io.github.uniquepython.tyfe;
+package io.github.uniquepython.tyfe.ast;
 
 import java.util.List;
 import java.util.Objects;
+
+import io.github.uniquepython.tyfe.common.Span;
+import io.github.uniquepython.tyfe.literal.LiteralValue;
 
 public sealed interface Expr
         permits Expr.Literal, Expr.Identifier, Expr.Unary, Expr.Binary, Expr.Block, Expr.If, Expr.While {

@@ -1,6 +1,8 @@
-package io.github.uniquepython.tyfe;
+package io.github.uniquepython.tyfe.lexer;
 
 import java.util.Objects;
+
+import io.github.uniquepython.tyfe.common.Span;
 
 public record Token(TokenKind kind, Span span) {
 
