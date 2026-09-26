@@ -2,7 +2,6 @@ package io.github.uniquepython.tyfe;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 public sealed interface Expr
         permits Expr.Literal, Expr.Identifier, Expr.Unary, Expr.Binary, Expr.Block, Expr.If, Expr.While {
@@ -40,10 +39,9 @@ public sealed interface Expr
         }
     }
 
-    record Block(List<Stmt> statements, Optional<Expr> produceValue, Span span) implements Expr, ElseBranch {
+    record Block(List<Stmt> statements, Span span) implements Expr, ElseBranch {
         public Block {
             Objects.requireNonNull(statements, "statements");
-            Objects.requireNonNull(produceValue, "produceValue");
             Objects.requireNonNull(span, "span");
         }
     }
