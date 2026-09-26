@@ -1,3 +1,6 @@
+/home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/AssignmentTarget.java
+/home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/BinaryOperator.java
+/home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/Expr.java
 /home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/Lexer.java
 /home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/LexerError.java
 /home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/LiteralValue.java
@@ -5,7 +8,11 @@
 /home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/Literalizer.java
 /home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/LiteralizerError.java
 /home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/Main.java
+/home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/Mutability.java
 /home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/Span.java
+/home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/Stmt.java
 /home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/Token.java
 /home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/TokenKind.java
 /home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/TyfeError.java
+/home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/Type.java
+/home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/UnaryOperator.java
