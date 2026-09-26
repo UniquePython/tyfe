@@ -17,7 +17,7 @@ public sealed interface Stmt
         }
     }
 
-    record Assignment(String target, Expr value, Span span) implements Stmt {
+    record Assignment(AssignmentTarget target, Expr value, Span span) implements Stmt {
         public Assignment {
             Objects.requireNonNull(target, "target");
             Objects.requireNonNull(value, "value");
