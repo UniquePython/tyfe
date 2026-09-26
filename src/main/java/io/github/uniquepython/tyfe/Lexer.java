@@ -1,5 +1,7 @@
 package io.github.uniquepython.tyfe;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class Lexer {
@@ -268,6 +270,25 @@ public class Lexer {
         advance(); // consume closing '\''
 
         return new Token(TokenKind.Literal.CHAR, new Span(start, position));
+    }
+
+    private Token lexSymbol() {
+        int start = position;
+
+        for (int len : new int[] { 3, 2, 1 }) {
+            if (position + len > source.length())
+                continue;
+
+            String candidate = source.substring(position, position + len);
+            TokenKind kind = symbols.get(candidate);
+
+            if (kind != null) {
+                position += len;
+                return new Token(kind, new Span(start, position));
+            }
+        }
+
+        throw new LexerError.IllegalCharacter(String.valueOf(peek()), new Span(start, start + 1));
     }
 
 }
