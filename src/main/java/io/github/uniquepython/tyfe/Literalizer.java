@@ -23,6 +23,8 @@ public final class Literalizer {
             case TokenKind.Literal.INTEGER -> parseInteger(source, token);
             case TokenKind.Literal.FLOAT -> parseFloat(source, token);
             case TokenKind.Literal.CHAR -> parseChar(source, token);
+            case TokenKind.Keyword.YES -> new LiteralValue.BoolValue(true);
+            case TokenKind.Keyword.NO -> new LiteralValue.BoolValue(false);
             case TokenKind.Keyword _ -> new LiteralValue.None();
             case TokenKind.Identifier _ -> new LiteralValue.None();
             case TokenKind.Operator _ -> new LiteralValue.None();

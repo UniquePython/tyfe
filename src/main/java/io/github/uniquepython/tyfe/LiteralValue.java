@@ -1,6 +1,7 @@
 package io.github.uniquepython.tyfe;
 
-public sealed interface LiteralValue {
+public sealed interface LiteralValue permits LiteralValue.IntValue, LiteralValue.FloatValue, LiteralValue.CharValue,
+        LiteralValue.BoolValue, LiteralValue.None {
 
     record IntValue(int value) implements LiteralValue {
         @Override
@@ -28,6 +29,13 @@ public sealed interface LiteralValue {
                 case '\0' -> "'\\0'";
                 default -> "'%c'".formatted((char) value);
             };
+        }
+    }
+
+    record BoolValue(boolean value) implements LiteralValue {
+        @Override
+        public String toString() {
+            return Boolean.toString(value);
         }
     }
 
