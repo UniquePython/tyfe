@@ -4,7 +4,8 @@ public abstract sealed class LexerError extends TyfeError
         permits LexerError.IllegalCharacter,
         LexerError.UnterminatedCharLiteral,
         LexerError.InvalidEscapeSequence,
-        LexerError.InvalidCharacterLiteral {
+        LexerError.InvalidCharacterLiteral,
+        LexerError.InvalidNumberLiteral {
 
     protected LexerError(String message, Span span) {
         super(message, span);
@@ -62,4 +63,20 @@ public abstract sealed class LexerError extends TyfeError
         }
 
     }
+
+    public static final class InvalidNumberLiteral extends LexerError {
+
+        private final String text;
+
+        public InvalidNumberLiteral(String text, Span span) {
+            super("Invalid number literal: %s".formatted(text), span);
+            this.text = text;
+        }
+
+        public String text() {
+            return text;
+        }
+
+    }
+
 }
