@@ -14,4 +14,9 @@ public record LiteralizedToken(TokenKind kind, Span span, LiteralValue value) {
         return new LiteralizedToken(original.kind(), original.span(), value);
     }
 
+    @Override
+    public String toString() {
+        return "%s @ %s".formatted(value, span);
+    }
+
 }

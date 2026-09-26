@@ -1,5 +1,9 @@
 /home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/Lexer.java
 /home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/LexerError.java
+/home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/LiteralValue.java
+/home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/LiteralizedToken.java
+/home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/Literalizer.java
+/home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/LiteralizerError.java
 /home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/Main.java
 /home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/Span.java
 /home/maharaja/dev/java/tyfe/src/main/java/io/github/uniquepython/tyfe/Token.java
