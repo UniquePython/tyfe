@@ -42,6 +42,7 @@ public sealed interface Expr
     record Block(List<Stmt> statements, Span span) implements Expr, ElseBranch {
         public Block {
             Objects.requireNonNull(statements, "statements");
+            statements = List.copyOf(statements);
             Objects.requireNonNull(span, "span");
         }
     }
