@@ -31,6 +31,23 @@ public class Lexer {
             Map.entry("}", TokenKind.Punctuation.RBRACE),
             Map.entry(";", TokenKind.Punctuation.SEMI_COLON));
 
+    private static final Map<String, TokenKind.Keyword> keywords = Map.ofEntries(
+            Map.entry("mut", TokenKind.Keyword.MUT),
+            Map.entry("const", TokenKind.Keyword.CONST),
+            Map.entry("if", TokenKind.Keyword.IF),
+            Map.entry("else", TokenKind.Keyword.ELSE),
+            Map.entry("while", TokenKind.Keyword.WHILE),
+            Map.entry("stop", TokenKind.Keyword.STOP),
+            Map.entry("skip", TokenKind.Keyword.SKIP),
+            Map.entry("produce", TokenKind.Keyword.PRODUCE),
+            Map.entry("i32", TokenKind.Keyword.I32),
+            Map.entry("f64", TokenKind.Keyword.F64),
+            Map.entry("bool", TokenKind.Keyword.BOOL),
+            Map.entry("char", TokenKind.Keyword.CHAR),
+            Map.entry("nothing", TokenKind.Keyword.NOTHING),
+            Map.entry("yes", TokenKind.Keyword.YES),
+            Map.entry("no", TokenKind.Keyword.NO));
+
     private final String source;
     private int position;
 
@@ -83,6 +100,34 @@ public class Lexer {
                 break; // neither whitespace nor a comment start
             }
         }
+    }
+
+    private boolean isIdentifierStart(char c) {
+        return c == '_' || ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z');
+    }
+
+    private boolean isIdentifierBody(char c) {
+        return isIdentifierStart(c) || ('0' <= c && c <= '9');
+    }
+
+    private Token lexIdentifierOrKeyword() {
+        int start = position;
+
+        advance();
+
+        while (isIdentifierBody(peek()))
+            advance();
+
+        if (peek() == '?')
+            advance();
+
+        String word = source.substring(start, position);
+        TokenKind kind = keywords.get(word);
+
+        if (kind == null)
+            kind = TokenKind.Identifier.IDENT;
+
+        return new Token(kind, new Span(start, position));
     }
 
 }
