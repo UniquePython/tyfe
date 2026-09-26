@@ -40,7 +40,7 @@ public sealed interface Expr
         }
     }
 
-    record Block(List<Stmt> statements, Optional<Expr> produceValue, Span span) implements Expr {
+    record Block(List<Stmt> statements, Optional<Expr> produceValue, Span span) implements Expr, ElseBranch {
         public Block {
             Objects.requireNonNull(statements, "statements");
             Objects.requireNonNull(produceValue, "produceValue");
@@ -48,7 +48,7 @@ public sealed interface Expr
         }
     }
 
-    record If(Expr condition, Expr thenBranch, Expr elseBranch, Span span) implements Expr {
+    record If(Expr condition, Block thenBranch, ElseBranch elseBranch, Span span) implements Expr, ElseBranch {
         public If {
             Objects.requireNonNull(condition, "condition");
             Objects.requireNonNull(thenBranch, "thenBranch");
@@ -57,12 +57,15 @@ public sealed interface Expr
         }
     }
 
-    record While(Expr condition, Expr body, Span span) implements Expr {
+    record While(Expr condition, Block body, Span span) implements Expr {
         public While {
             Objects.requireNonNull(condition, "condition");
             Objects.requireNonNull(body, "body");
             Objects.requireNonNull(span, "span");
         }
+    }
+
+    sealed interface ElseBranch permits Block, If {
     }
 
 }
