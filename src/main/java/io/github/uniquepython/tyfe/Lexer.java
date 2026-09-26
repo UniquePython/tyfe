@@ -61,4 +61,28 @@ public class Lexer {
         return source.charAt(position++);
     }
 
+    private boolean isWhitespace(char c) {
+        return switch (c) {
+            case ' ', '\t', '\n', '\r', '\f' -> true;
+            default -> false;
+        };
+    }
+
+    private void skipWhitespaceAndComments() {
+        while (!isAtEnd()) {
+            char c = peek();
+
+            if (isWhitespace(c)) {
+                advance();
+
+            } else if (c == '/' && peek(1) == '/') {
+                while (!isAtEnd() && peek() != '\n') // consume until newline or EOF
+                    advance();
+
+            } else {
+                break; // neither whitespace nor a comment start
+            }
+        }
+    }
+
 }
