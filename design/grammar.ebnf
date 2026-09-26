@@ -1,0 +1,683 @@
+(* ================================================================
+   Language Grammar (working draft)
+   Notation: EBNF-ish. '|' = alternation, '?' = optional, '*' = zero
+   or more, '+' = one or more, '( )' = grouping, literals in '...'.
+   ================================================================ *)
+
+(* ---- Lexical: comments -------------------------------------------
+   Line comments only: '//' through the end of the line. No block
+   comment form. Comments are purely lexical (stripped before/during
+   tokenizing, like whitespace) -- they do not appear in any grammar
+   production below and carry no semantic meaning. *)
+
+LineComment ::= '//' (* any characters up to, not including, newline *) ;
+
+(* ---- Top level ------------------------------------------------- *)
+
+(* Program is a sequence of TOP-LEVEL statements, a distinct list from
+   the local 'Statement' used inside blocks/function bodies (see
+   below). The two differ specifically around declarations,
+   procedures, and data: at the top level, 'mut'/'const' declarations,
+   'procedure' definitions, and 'data' definitions each require an
+   explicit leading Visibility marker ('pub'/'priv'), since these are
+   the things a module (file) may or may not expose to other modules
+   via 'use' (see Modules below). Inside a block/function body,
+   visibility is meaningless -- a local variable or nested function
+   isn't something another module could ever reach -- so the ordinary
+   (non-top-level) 'DeclarationStatement'/'FunctionDefinition'/
+   'DataDefinition' forms stay visibility-free, exactly as already
+   designed. Everything else (expression-statements, assignment,
+   produce/stop/skip, 'use' itself) is unaffected by top-level-vs-
+   local position and appears in both lists unchanged. *)
+
+Program            ::= TopLevelStatement* ;
+
+TopLevelStatement  ::= UseStatement
+                      | TopLevelDeclarationStatement
+                      | TopLevelFunctionDefinition
+                      | TopLevelDataDefinition
+                      | ExpressionStatement
+                      | AssignmentStatement
+                      | ProduceStatement
+                      | StopStatement
+                      | SkipStatement ;
+
+(* A Statement is the "thing you write one of, in sequence" INSIDE a
+   block or function body. Expressions can appear in statement
+   position (an ExpressionStatement), which is how expression-oriented
+   constructs (if, blocks, loops, etc.) get used for effect rather
+   than for their value. *)
+
+Statement   ::= ExpressionStatement
+              | DeclarationStatement
+              | AssignmentStatement
+              | ProduceStatement
+              | StopStatement
+              | SkipStatement
+              | FunctionDefinition
+              | DataDefinition ;
+
+Visibility  ::= 'pub' | 'priv' ;
+
+TopLevelDeclarationStatement ::= Visibility ( 'mut' | 'const' ) Type Identifier '=' Expression ';' ;
+TopLevelFunctionDefinition   ::= Visibility 'procedure' Identifier '(' ParamList? ')' '->' Type Block ;
+TopLevelDataDefinition       ::= Visibility 'data' Identifier '{' DataMember* '}' ;
+(* Otherwise identical in shape/semantics to DeclarationStatement,
+   FunctionDefinition, and DataDefinition respectively -- see those
+   productions below for the parts unrelated to visibility. Mandatory,
+   no default: every top-level declaration/procedure/data definition
+   must state 'pub' or 'priv' explicitly, same "always explicit, no
+   defaults" principle already applied to fields, params, mutability,
+   and numeric literal types throughout this language. *)
+
+(* ---- Modules ------------------------------------------------------
+   One FILE is one module (no separate 'module' keyword/block --
+   the file itself is the boundary). Source files use the '.tyfe'
+   extension. A directory of files forms a namespacing level in a
+   module PATH, but only if that directory contains a marker file
+   named '<directory_name>.tyfe.mod' -- a plain text file, NOT tyfe
+   source code, listing the '.tyfe' filenames (without extension,
+   newline-separated) within that SAME directory that are importable
+   from outside it. This applies non-recursively per directory: a
+   subdirectory needs its own separate '<subdir_name>.tyfe.mod' to be
+   traversable in turn, and the project ROOT directory needs one too
+   (there is no exemption for the outermost directory). A '.tyfe' file
+   that exists but is not listed in its directory's '.tyfe.mod' is
+   completely unreachable via 'use', regardless of what 'pub' items it
+   contains -- this is a coarser, FILE-level gate that sits in
+   addition to, not instead of, ordinary item-level 'pub'/'priv' (see
+   Visibility above): a file must be BOTH listed in its directory's
+   '.tyfe.mod' AND contain the item as 'pub' for that item to be
+   usable from another module.
+
+   ModulePath is a '::'-separated chain of directory segments followed
+   by a final file segment (e.g. 'geometry::shapes' referring to
+   'geometry/shapes.tyfe', reachable only if 'geometry/geometry.tyfe.mod'
+   lists 'shapes'). A single-segment path (e.g. 'shapes') refers to a
+   file directly in the root.
+
+   UseStatement syntax: 'use' ModulePath '::' UseList ';'. UseList is
+   either a single item (braces optional for exactly one item) or a
+   brace-delimited, comma-separated list of items for the same module.
+   Each item may optionally be renamed at the import site via 'as'.
+   Renaming is per-item, independent for each item in a multi-item
+   list -- e.g. 'use shapes::{Square, Circle as c};' renames only
+   'Circle'. There is no whole-module/blanket import form -- every
+   name brought in must be individually named, always unqualified
+   (never referenced via the module path after import), consistent
+   with the language having exactly one way to do each thing rather
+   than multiple import styles. Only 'pub' top-level items (that also
+   pass their file's '.tyfe.mod' gate) may ever appear as a UseItem;
+   attempting to 'use' a 'priv' item, or one in an unlisted file, is a
+   compile-time error. *)
+
+UseStatement ::= 'use' ModulePath '::' UseList ';' ;
+ModulePath   ::= Identifier ( '::' Identifier )* ;
+UseList      ::= UseItem | '{' UseItem ( ',' UseItem )* '}' ;
+UseItem      ::= Identifier ( 'as' Identifier )? ;
+
+ExpressionStatement ::= Expression ';' ;
+
+StopStatement   ::= 'stop' ';' ;
+SkipStatement   ::= 'skip' ';' ;
+
+(* ---- Assignment ---------------------------------------------------
+   Reassigns an existing 'mut' variable, OR mutates an element of an
+   array whose element-mutability is 'mut' (see ArrayType). Statement-
+   only, not an expression (unlike C). Reassigning a 'const' variable,
+   or mutating an element of a 'const'-element array, is a compile-
+   time error. Plain '=' replaces the value outright; each compound
+   form is pure desugaring around the arithmetic operator of the same
+   spelling -- 'x += e;' means 'x = x + e;', 'x <+=> e;' means
+   'x = x <+> e;', and so on for every arithmetic operator (checked
+   and wrapping alike, including ** / <**>). The right-hand side's
+   type must match the target's type exactly, same as at declaration.
+
+   AssignmentTarget covers a bare variable ('x = ...;'), an indexed
+   element at any nesting depth ('arr[i] = ...;', 'matrix[i][j] =
+   ...;', freely mixing checked and wrapping index forms at each
+   level, e.g. 'matrix[i]<[j]> = ...;'), and a field access
+   ('acc->cash = ...;'), and any mixture/chaining of the two
+   ('accounts[i]->cash = ...;', 'acc->sub_accounts[j] = ...;').
+   For a nested array target, every level from the outermost array
+   down to (but not including) the final indexed element must have
+   'mut' element-mutability for the assignment to be legal --
+   mutating through a 'const'-element array at ANY level is a
+   compile-time error, not just at the final level. For a field
+   target, the field itself must be 'mut' (assigning to a 'priv'
+   field additionally requires being inside a method of that
+   struct's data block -- see semantics.md), and assigning through a
+   chain of fields/indices requires every intermediate step to be
+   mutable, same principle as nested arrays. *)
+
+AssignmentStatement ::= AssignmentTarget AssignmentOp Expression ';' ;
+AssignmentTarget ::= Identifier AssignmentTargetSuffix* ;
+AssignmentTargetSuffix ::= IndexOp Expression IndexClose
+                          | '->' Identifier ;
+AssignmentOp    ::= '='
+                   | '+=' | '<+=>' | '-=' | '<-=>'
+                   | '*=' | '<*=>' | '/=' | '</=>'
+                   | '%=' | '<%=>' | '**=' | '<**=>' ;
+
+(* ---- Blocks -------------------------------------------------------
+   A block is a brace-delimited sequence of statements, usable in
+   expression position. Its value comes from 'produce', a statement
+   legal anywhere inside the block; executing it immediately ends
+   the block with that value (no statements after it in the block
+   run). If execution reaches the end of the block without having
+   executed a 'produce', the block's value is 'nothing'.
+
+   'produce' is syntactically legal in any block; if the enclosing
+   block is itself used in statement position, its produced value
+   (like any expression's value in statement position) is simply
+   discarded.
+
+   Blocks introduce a new lexical scope: declarations inside a block
+   go out of scope when the block ends. *)
+
+Block               ::= '{' Statement* '}' ;
+ProduceStatement    ::= 'produce' Expression ';' ;
+
+(* ---- Declarations ------------------------------------------------
+   Two co-equal forms: 'mut' (mutable) and 'const' (immutable).
+   Initialization is mandatory -- no uninitialized declarations.
+   Type annotation is mandatory (no inference): shape is
+   'mutability type identifier = value;', e.g. 'mut i32 x = 5#i32;'.
+   The initializer's type must match the declared type exactly --
+   no implicit coercion, consistent with the rest of the language.
+
+   For array types specifically, this composes with ArrayType's own
+   built-in element-mutability to give the full pattern
+   'mutability type mutability[N] identifier = value;', e.g.
+   'mut i32 mut[5] arr = [...];' -- the OUTER mutability governs
+   whether 'arr' can be reassigned to a different array entirely;
+   the INNER mutability (part of the array type itself) governs
+   whether individual elements can be mutated in place. See
+   semantics.md. *)
+
+DeclarationStatement ::= ( 'mut' | 'const' ) Type Identifier '=' Expression ';' ;
+
+(* Identifiers: ASCII only, case-sensitive.
+   Start: letter or underscore. Body: letters, digits, underscore.
+   Optional single trailing '?' (must be the last character, e.g.
+   'valid?', 'is_empty?' -- not legal mid-identifier). *)
+
+Identifier  ::= IdentStart IdentChar* '?'? ;
+IdentStart  ::= 'a'..'z' | 'A'..'Z' | '_' ;
+IdentChar   ::= IdentStart | '0'..'9' ;
+
+(* Note: Identifier must not exactly match a reserved keyword
+   (e.g. 'mut', 'const', and others to be added). *)
+
+(* ---- Primitive types -----------------------------------------
+   i8 i16 i32 i64 u8 u16 u32 u64   -- signed/unsigned integers
+   f32 f64                          -- floats
+   bool                             -- boolean
+   char                             -- single character
+   nothing                          -- unit type (one value, no
+                                        meaningful payload)
+   No string type yet -- to be introduced later as a composite
+   type built on 'char'. No null/None/absent-value concept exists
+   in this language at all (see semantics.md). *)
+
+PrimitiveType ::= 'i8' | 'i16' | 'i32' | 'i64'
+                 | 'u8' | 'u16' | 'u32' | 'u64'
+                 | 'f32' | 'f64'
+                 | 'bool' | 'char' | 'nothing' ;
+
+(* ---- Function types --------------------------------------------
+   A function's type is written 'procedure(ParamTypes) -> ReturnType',
+   e.g. 'procedure(i32, i32) -> i32'. This is a TYPE (used wherever a
+   type is expected, e.g. in a declaration: 'const procedure(i32,i32)->i32
+   my_func = add;') -- it names only parameter TYPES, not parameter
+   names. See function definitions (TBD) for how an actual function
+   with named parameters and a body is introduced. *)
+
+FunctionType  ::= 'procedure' '(' ParamTypeList? ')' '->' Type ;
+ParamTypeList ::= Type ( ',' Type )* ;
+
+(* ---- Array types --------------------------------------------------
+   Fixed-size only (for now -- growable arrays deferred as a future
+   decision). Written 'T mutability[N]', e.g. 'i32 mut[5]' or
+   'i32 const[5]' -- the mutability here governs individual ELEMENTS
+   (can 'arr[i] = ...;' mutate a slot in place), which is a SEPARATE
+   concern from whether the variable binding itself can be reassigned
+   to a different array entirely (that's the ordinary declaration-
+   level mutability -- see DeclarationStatement). Elements are
+   homogeneous (single element type per array, consistent with no
+   implicit type mixing/coercion anywhere else). N is a plain
+   unsigned literal digit sequence baked into the type at compile
+   time -- NOT a full IntegerLiteral (no '#type' suffix, since N is
+   a compile-time count, not a typed runtime value). See
+   semantics.md for indexing/mutation rules. *)
+
+ArrayType     ::= Type ( 'mut' | 'const' ) '[' ArraySize ']' ;
+ArraySize     ::= DecDigits ;  (* plain digits, no suffix; see Literals *)
+
+(* 'Type' generalizes PrimitiveType to include function, array, and
+   data (struct) types too, now that a function is a kind of value
+   with a kind of type, arrays exist, and 'data' introduces new
+   named types. A DataType reference is just the struct's own name
+   (an Identifier that must resolve to a prior 'data' definition --
+   same top-to-bottom visibility rule as every other name). *)
+Type          ::= PrimitiveType | FunctionType | ArrayType | DataType ;
+DataType      ::= Identifier ;
+
+(* ---- Function definitions -----------------------------------------
+   Introduces a named function value. Same 'procedure' keyword as the
+   function TYPE syntax -- one keyword for both naming the type and
+   defining an instance of it, consistent with how e.g. 'i32' names
+   both a type and appears in declarations.
+
+   Each parameter follows the same three-part shape as variable
+   declarations: mutability, type, name (e.g. 'const i32 a',
+   'mut i32 b') -- 'const' params cannot be reassigned in the body,
+   'mut' params behave like ordinary local mutable variables from
+   the start. The body is a Block, which already knows how to
+   produce its value via 'produce' -- a function's return value IS
+   its body block's produced value. Return type must match the
+   body's static type (block-typing rules already established). *)
+
+FunctionDefinition ::= 'procedure' Identifier
+                        '(' ParamList? ')' '->' Type Block ;
+ParamList     ::= Param ( ',' Param )* ;
+
+(* Each parameter is: mutability, optional '@' (pass-by-reference
+   marker), type, name. Four combinations:
+     const T a   -- by-value, read-only copy
+     mut   T a   -- by-value, mutable copy (caller unaffected)
+     const @T a  -- by-reference, read-only view of caller's variable
+     mut   @T a  -- by-reference, mutable view (mutations visible
+                    to the caller's actual variable)
+   Without '@', a parameter is by-value (an independent copy) --
+   this is the behavior already established for all parameters
+   designed so far. See semantics.md for full pass-by-reference
+   semantics. *)
+Param         ::= ( 'mut' | 'const' ) '@'? Type Identifier ;
+
+(* Constraint (not expressible in the grammar shape above, enforced
+   separately): '@' is illegal when Type is a FunctionType. A
+   function-typed parameter must be plain 'const T' or 'mut T' --
+   e.g. 'const procedure(i32)->i32 f' is legal, but
+   'const @procedure(i32)->i32 f' is a compile-time error. See
+   semantics.md. *)
+
+(* ---- Data (struct) definitions -------------------------------------
+   Introduces a new named composite type. Statement, like
+   FunctionDefinition -- the struct's name becomes usable as a Type
+   for subsequent code, following the same strict top-to-bottom
+   visibility rule as every other name in this language.
+
+   A data block contains fields and, optionally, procedures. Unlike
+   top-level FunctionDefinitions, every procedure inside a data block
+   must be marked 'iproc' (instance procedure -- requires an
+   instance; its first parameter MUST be an '@'-reference to the
+   enclosing struct's own type, e.g. 'const @Account self' -- this
+   IS enforced) or 'dproc' (data-associated procedure -- no instance
+   needed, e.g. constructors; ordinary parameter list), AND with a
+   visibility ('pub'|'priv'), same as fields. See MethodDefinition
+   below.
+
+   Each field is: visibility ('pub'|'priv'), mutability ('mut'|
+   'const'), type, name -- e.g. 'pub mut f64 cash;',
+   'priv const u64 id;'. See semantics.md for the full privacy
+   model (what "inside" means, construction-time enforcement,
+   per-type vs. per-instance access, and how it now extends to
+   procedures too). *)
+
+DataDefinition  ::= 'data' Identifier '{' DataMember* '}' ;
+DataMember      ::= FieldDeclaration | MethodDefinition ;
+FieldDeclaration ::= ( 'pub' | 'priv' ) ( 'mut' | 'const' ) Type Identifier ';' ;
+
+(* Every procedure inside a data block must be marked with exactly
+   one of 'iproc' (instance procedure -- requires an instance) or
+   'dproc' (data-associated procedure -- no instance needed, e.g.
+   constructors), AND with exactly one of 'pub'/'priv', mirroring
+   FieldDeclaration exactly (mandatory, no default -- same "always
+   explicit" pattern as everywhere else in this language). This is
+   ENFORCED, not just a naming convention: an 'iproc's first
+   parameter MUST be an '@'-reference to the enclosing struct's own
+   type (e.g. 'const @Account self' inside 'data Account { ... }')
+   -- checked at compile time. A 'dproc' has no such requirement;
+   its parameter list is ordinary, with no receiver expected or
+   implied.
+
+   A 'priv' procedure follows the exact same privacy rule as a
+   'priv' field: callable (via '->'/'.'/':' as appropriate) only
+   from within an 'iproc' or 'dproc' textually declared inside that
+   same struct's data block -- see semantics.md. A 'pub' procedure
+   is callable from anywhere the instance (for iproc) or type name
+   (for dproc) is reachable, same as a 'pub' field.
+
+   Calling an iproc requires an existing instance (via
+   'instance->method(...)', reusing FieldAccessExpr + CallExpr --
+   see semantics.md). Calling a dproc uses a different,
+   type-associated syntax: 'TypeName:proc_name(...)' -- see
+   DprocCallExpr below, and semantics.md. *)
+
+MethodDefinition ::= ( 'pub' | 'priv' ) ( 'iproc' | 'dproc' ) 'procedure' Identifier
+                      '(' ParamList? ')' '->' Type Block ;
+
+(* ---- Literals ---------------------------------------------------
+   Integer and float literals REQUIRE an explicit type suffix,
+   written as '#' followed by the primitive type name, e.g.
+   42#i32, 255#u8, 3.0#f64. There is no default/inferred numeric
+   type -- every numeric literal states its own type.
+
+   Digit separator '_' may appear between digits for readability
+   (e.g. 1_000_000#i64). It carries no meaning, purely cosmetic. *)
+
+IntegerLiteral ::= IntDigits '#' IntTypeSuffix ;
+
+IntDigits      ::= DecDigits | HexLiteral | BinLiteral | OctLiteral ;
+
+DecDigits      ::= Digit (Digit | '_')* ;
+HexLiteral     ::= '0x' HexDigit (HexDigit | '_')* ;
+BinLiteral     ::= '0b' ('0' | '1') ('0' | '1' | '_')* ;
+OctLiteral     ::= '0o' OctDigit (OctDigit | '_')* ;
+
+Digit          ::= '0'..'9' ;
+HexDigit       ::= Digit | 'a'..'f' | 'A'..'F' ;
+OctDigit       ::= '0'..'7' ;
+
+IntTypeSuffix  ::= 'i8' | 'i16' | 'i32' | 'i64'
+                  | 'u8' | 'u16' | 'u32' | 'u64' ;
+
+FloatLiteral   ::= DecDigits '.' DecDigits '#' FloatTypeSuffix ;
+(* No exponent syntax for now. *)
+
+FloatTypeSuffix ::= 'f32' | 'f64' ;
+
+BoolLiteral    ::= 'yes' | 'no' ;
+
+CharLiteral    ::= "'" ( CharChar | EscapeSequence ) "'" ;
+CharChar       ::= (* any single character except "'" and '\' *) ;
+EscapeSequence ::= '\' ( 'n' | 't' | 'r' | '\' | "'" | '0' ) ;
+(* \n newline, \t tab, \r carriage return, \\ backslash,
+   \' single quote, \0 null character *)
+
+Literal        ::= IntegerLiteral | FloatLiteral | BoolLiteral | CharLiteral ;
+
+(* ---- Arithmetic operators -----------------------------------
+   Every binary arithmetic operator has two spellings: a CHECKED
+   form and a WRAPPING form. Both operands of any arithmetic
+   operator must be the exact same type -- there is NO implicit
+   numeric type mixing/coercion anywhere in this language.
+
+   See semantics.md for full checked/wrapping/division semantics. *)
+
+Expression  ::= OrExpr ;
+
+(* ---- Logical operators -------------------------------------------
+   '&&' (AND), '||' (OR), '!' (NOT, unary -- see Unary operators
+   below). Operands must be bool -- no "truthy" coercion of any
+   other type. Both && and || short-circuit: && does not evaluate
+   its right operand if the left is 'no'; || does not evaluate its
+   right operand if the left is 'yes'. *)
+
+OrExpr          ::= AndExpr ( '||' AndExpr )* ;
+AndExpr         ::= ComparisonExpr ( '&&' ComparisonExpr )* ;
+
+(* ---- Comparison operators ---------------------------------------
+   Same-type-only, like arithmetic: both operands must be the exact
+   same primitive type, or it is an error. No checked/wrapping split
+   -- comparison cannot overflow, so only one form of each operator
+   exists. Always produces a bool.
+
+   Applicability by type (see semantics.md):
+     integers, floats : == != < > <= >= !< !<= !> !>=  (all ten)
+     char              : == != < > <= >= !< !<= !> !>=  (all ten, by code point)
+     bool              : == !=  only
+     nothing           : == !=  only (trivial: always true / always false) *)
+
+ComparisonExpr  ::= BitOrExpr ( ComparisonOp BitOrExpr )? ;
+(* non-associative: comparisons don't chain (e.g. 'a < b < c' is
+   not valid -- must write '(a < b) && (b < c)' once logical ops
+   with a bool operand exist) *)
+ComparisonOp    ::= '==' | '!=' | '<' | '>' | '<=' | '>='
+                   | '!<' | '!<=' | '!>' | '!>=' ;
+
+(* ---- Bitwise operators -------------------------------------------
+   '&' (AND), '|' (OR), '^' (XOR) -- binary; '~' (NOT) -- unary, see
+   UnaryOp. UNSIGNED INTEGER TYPES ONLY (u8/u16/u32/u64) -- illegal
+   on signed integers, bool, or any other type. Both operands must be
+   the exact same unsigned type, same "no implicit numeric mixing"
+   rule as arithmetic -- no exception carved out here. No checked/
+   wrapping distinction: combining existing same-width bit patterns
+   can never produce an out-of-range result, so there's nothing to
+   overflow. Precedence (loosest to tightest): '|' then '^' then '&'
+   then shifts -- Rust-style, deliberately NOT C's precedence (where
+   shifts/bitwise sit below comparisons and famously make
+   'a & b == c' parse as 'a & (b == c)'). Here '|'/'^'/'&'/shifts all
+   bind TIGHTER than comparisons, so 'a & b == c' means
+   '(a & b) == c', matching intuition. See semantics.md. *)
+
+BitOrExpr       ::= BitXorExpr ( '|' BitXorExpr )* ;
+BitXorExpr      ::= BitAndExpr ( '^' BitAndExpr )* ;
+BitAndExpr      ::= ShiftExpr ( '&' ShiftExpr )* ;
+
+(* ---- Shift operators -----------------------------------------------
+   '<<' (left shift), '>>' (right shift) -- UNSIGNED INTEGER TYPES
+   ONLY, same restriction as '& | ^'. Logical shift only (zero-fill) --
+   unambiguous since signed types are excluded, so there's no
+   arithmetic-vs-logical right-shift question to resolve. Checked
+   forms ('<<', '>>') panic if the shift amount is >= the operand
+   type's bit-width (e.g. '5#u8 << 9#u8', since u8 is only 8 bits
+   wide); wrapping forms ('<<<>', '<>>>') mask the shift amount
+   instead (effectively 'shift_amount % bit_width'), same
+   checked/wrapping philosophy as every other binary operator with
+   an edge case. Shift amount may be any unsigned integer type,
+   independent of the left operand's type (not required to match --
+   this is the one binary-operator family where the two operands are
+   NOT required to be the same type, since the shift amount isn't a
+   value being combined bitwise, just a count). *)
+
+ShiftExpr       ::= AdditiveExpr ( ShiftOp AdditiveExpr )* ;
+ShiftOp         ::= '<<' | '>>' | '<<<>' | '<>>>' ;
+
+AdditiveExpr    ::= MultiplicativeExpr ( AdditiveOp MultiplicativeExpr )* ;
+AdditiveOp      ::= '+' | '<+>' | '-' | '<->' ;
+
+MultiplicativeExpr ::= ExponentExpr ( MultiplicativeOp ExponentExpr )* ;
+MultiplicativeOp   ::= '*' | '<*>' | '/' | '</>' | '%' | '<%>' ;
+
+ExponentExpr    ::= UnaryExpr ( ExponentOp ExponentExpr )? ;
+(* right-associative, as is conventional for exponentiation *)
+ExponentOp      ::= '**' | '<**>' ;
+
+(* ---- Unary operators -------------------------------------------
+   Unary minus only applies to SIGNED integer and float types --
+   it is illegal on unsigned types (u8..u64). Like the binary
+   arithmetic operators, it has a checked form ('-', panics if
+   negating the type's MIN value, which has no positive
+   counterpart in a signed fixed-width type) and a wrapping form
+   ('<->', wraps instead). There is no unary plus.
+
+   Logical NOT ('!') applies only to bool, produces bool, no
+   checked/wrapping distinction (nothing to overflow).
+
+   Bitwise NOT ('~') applies only to unsigned integer types (same
+   restriction as the other bitwise operators), produces the same
+   unsigned type. No checked/wrapping distinction -- complementing a
+   fixed-width unsigned value's bits can never produce an
+   out-of-range result, so there is only one spelling, no wrapping
+   counterpart (same reasoning as '!'). *)
+
+UnaryExpr       ::= UnaryOp UnaryExpr
+                   | CastExpr ;
+UnaryOp         ::= '-' | '<->' | '!' | '~' ;
+
+(* ---- Casting -----------------------------------------------------
+   Explicit-only type conversion. 'as' is checked (panics if the
+   value doesn't fit/convert cleanly); '<as>' is the permissive
+   counterpart (wraps/saturates/reinterprets instead of panicking).
+   See semantics.md for the full per-case behavior (widening,
+   narrowing, signed<->unsigned, int<->float, char<->int). bool is
+   never castable to/from anything. *)
+
+CastExpr        ::= CallExpr ( CastOp Type )* ;
+CastOp          ::= 'as' | '<as>' ;
+
+(* Constraint (enforced separately, not expressible in this grammar
+   shape): casting is illegal, in either direction and either
+   spelling, whenever a FunctionType is the source or target Type --
+   same status as 'bool'. E.g. neither 'some_func as i32' nor
+   'x as procedure(i32)->i32' is legal. See semantics.md. *)
+
+(* ---- Calls -----------------------------------------------------
+   Two distinct call forms:
+
+   - Ordinary/free-function calls and iproc calls both use CallExpr,
+     postfix on any expression producing a function value OR any
+     expression producing a struct instance immediately followed by
+     '.method(...)' (e.g. 'get_adder()(5#i32)' calling a call's
+     result; 'acc.deposit(5#f64)' calling an iproc on an instance).
+     Chains naturally via left-recursion, and composes freely with
+     field access ('->') and indexing ('[' '<[').
+
+   - dproc calls use DprocCallExpr: 'TypeName:proc_name(...)' --
+     starts from a TYPE NAME, not an instance value, since a dproc
+     needs no instance (e.g. 'Account:new(1#u64)').
+
+   Each argument corresponding to a by-reference ('@') parameter
+   must be marked with '@' at the call site too (e.g. 'add(@x, y)')
+   -- reference-passing is visible at the call site, not silently
+   determined by the callee's signature alone. See semantics.md. *)
+
+CallExpr        ::= FieldAccessExpr ( CallSuffix )* ;
+CallSuffix      ::= '(' ArgList? ')'
+                   | '.' Identifier '(' ArgList? ')' ;
+ArgList         ::= Arg ( ',' Arg )* ;
+Arg             ::= '@'? Expression ;
+
+(* dproc calls: 'TypeName:proc_name(args)'. A PrimaryExpr alternative
+   (see below), since it starts from a type name, not an arbitrary
+   expression -- it does not chain the way ordinary calls do (though
+   its own RESULT can still be used as an ordinary expression, e.g.
+   further called/indexed/field-accessed via the normal postfix
+   chain, since CallExpr/FieldAccessExpr/IndexExpr all sit above
+   PrimaryExpr). *)
+DprocCallExpr   ::= Identifier ':' Identifier '(' ArgList? ')' ;
+
+(* ---- Field access ---------------------------------------------------
+   'instance->field', e.g. 'acc->cash'. Postfix, chains naturally
+   (e.g. nested structs: 'a->b->c'), and composes with calls/
+   indexing in any order (e.g. 'accounts[i]->cash',
+   'acc->sub_account.deposit(5#f64)'). NOTE: unlike calls, field
+   access always uses '->', never '.' -- '.' is reserved specifically
+   for iproc calls (see Calls above). Accessing a 'priv' field is
+   only legal from within an iproc/dproc declared inside that same
+   struct's data block (see semantics.md for the full privacy
+   model); accessing a 'pub' field is legal from anywhere the
+   instance itself is reachable. *)
+
+FieldAccessExpr ::= IndexExpr ( '->' Identifier )* ;
+
+(* ---- Array indexing -----------------------------------------------
+   Postfix, chains naturally (e.g. for nested arrays, 'arr[i][j]').
+   Index may be any unsigned integer type. 'arr[i]' is checked --
+   panics on out-of-bounds. 'arr<[i]>' is the wrapping counterpart --
+   never panics, instead the effective index is 'i % N' (modular
+   wraparound into [0, N)), mirroring the checked/wrapping bracket
+   convention used throughout the rest of the language. *)
+
+IndexExpr       ::= PrimaryExpr ( IndexOp Expression IndexClose )* ;
+IndexOp         ::= '[' | '<[' ;
+IndexClose      ::= ']' | ']>' ;
+(* Note: '[' pairs with ']' (checked), '<[' pairs with ']>' (wrapping) --
+   see semantics.md; a real lexer/parser would enforce this pairing
+   rather than allowing '[' ... ']>' to mismatch. *)
+
+(* ---- Array literals -------------------------------------------
+   '[elem1, elem2, ...]' -- element count must exactly match the
+   declared size N of the array type it's used for (compile-time
+   checked); all elements must be the same type (the array's element
+   type), consistent with no implicit coercion anywhere. *)
+
+ArrayLiteral    ::= '[' ( Expression ( ',' Expression )* )? ']' ;
+
+(* ---- Data (struct) literals -----------------------------------
+   'TypeName { field1 = expr1, field2 = expr2, ... }' -- every
+   field of the struct must be given exactly once, by name (order
+   need not match declaration order). Setting a 'priv' field is only
+   legal from within a method of that same struct's data block, same
+   restriction as reading/writing a priv field elsewhere -- see
+   semantics.md. *)
+
+DataLiteral     ::= Identifier '{' ( FieldInit ( ',' FieldInit )* )? '}' ;
+FieldInit       ::= Identifier '=' Expression ;
+
+PrimaryExpr     ::= Literal
+                   | Identifier
+                   | Block
+                   | IfExpr
+                   | LoopExpr
+                   | ArrayLiteral
+                   | DataLiteral
+                   | DprocCallExpr
+                   | '(' Expression ')' ;
+                   (* more forms TBD *)
+
+(* ---- Loops -----------------------------------------------------
+   Four forms, all usable in expression position (their value comes
+   from 'produce' inside the body, exactly like blocks; if the loop
+   ends without ever executing 'produce', its value is 'nothing' --
+   see semantics.md).
+
+   'until (cond) {...}' is exactly 'while (!cond) {...}' -- runs
+   while the condition is FALSE, mirroring how 'unless' relates to
+   'if'.
+
+   'loop (n) {...}' repeats the body exactly n times, where n may be
+   any unsigned integer type (u8/u16/u32/u64) -- whatever type the
+   expression evaluates to. No loop counter/iteration index is
+   exposed inside the body.
+
+   'for (mutability [@]? Type identifier in arrExpr) {...}' iterates
+   once per element of an array expression, binding 'identifier' to
+   each element in turn. The binding reuses the EXACT same four
+   parameter combinations as function Params (see Param below):
+   'const T x' (read-only copy), 'mut T x' (mutable copy, does not
+   affect the array), 'const @T x' (read-only live view into the
+   element), 'mut @T x' (mutable live view -- mutating 'x' mutates
+   the array element in place, only legal if the array's element-
+   mutability is 'mut', same rule as ordinary indexed assignment).
+   'Type' must match the array's element type exactly -- no
+   inference, consistent with every other declaration/parameter in
+   the language. For a nested array (array of arrays), 'for' binds
+   one level at a time -- 'identifier' takes the type of the INNER
+   array, not a scalar; reaching scalars requires nesting a 'for' per
+   level, same as indexing does ('matrix[i]' is a row, 'matrix[i][j]'
+   is an element). See semantics.md.
+
+   'stop;' exits the innermost enclosing loop immediately, always
+   with value 'nothing' (use 'produce' instead if you need to exit
+   with a value). 'skip;' jumps to the next iteration of the
+   innermost enclosing loop. Neither takes an argument. There is no
+   labeled-loop support -- 'stop'/'skip' always affect only the
+   innermost enclosing loop, by permanent design decision, not a
+   placeholder to be revisited. This applies to 'for' identically to
+   the other three loop forms. *)
+
+LoopExpr        ::= WhileExpr | UntilExpr | CountedLoopExpr | ForExpr ;
+WhileExpr       ::= 'while' '(' Expression ')' Block ;
+UntilExpr       ::= 'until' '(' Expression ')' Block ;
+CountedLoopExpr ::= 'loop' '(' Expression ')' Block ;
+ForExpr         ::= 'for' '(' Param 'in' Expression ')' Block ;
+(* Reuses the 'Param' production directly (mutability, optional '@',
+   Type, Identifier) -- see Param below -- rather than duplicating
+   its shape under a new name, since the binding rules are identical
+   to a function parameter's. *)
+
+(* ---- if / unless ---------------------------------------------------
+   'unless (cond) {...}' is exactly 'if (!cond) {...}' -- the branch
+   runs when the condition is FALSE. Otherwise structurally identical
+   to 'if': parenthesized condition, mandatory 'else', both branches
+   are blocks (so both must produce the same static type -- see
+   semantics.md). 'if' and 'unless' are interchangeable at every
+   position in a chain, including 'else if', 'else unless', and as
+   the first keyword of the chain -- all combinations are legal,
+   since each is just sugar for nested if/unless + else. *)
+
+IfExpr          ::= ('if' | 'unless') '(' Expression ')' Block ElseClause ;
+ElseClause      ::= 'else' ( IfExpr | Block ) ;
