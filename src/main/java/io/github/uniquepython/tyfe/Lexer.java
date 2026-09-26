@@ -130,4 +130,105 @@ public class Lexer {
         return new Token(kind, new Span(start, position));
     }
 
+    private void expectSuffix(int start) {
+        if (source.startsWith("i32", position) || source.startsWith("f64", position)) {
+            advance();
+            advance();
+            advance();
+        } else
+            throw new LexerError.InvalidNumberLiteral(source.substring(start, position), new Span(start, position));
+    }
+
+    private boolean isDigit(char c) {
+        return '0' <= c && c <= '9';
+    }
+
+    private boolean isBinDigit(char c) {
+        return '0' <= c && c <= '1';
+    }
+
+    private boolean isOctDigit(char c) {
+        return '0' <= c && c <= '7';
+    }
+
+    private boolean isHexDigit(char c) {
+        return ('0' <= c && c <= '9') || ('A' <= c && c <= 'F');
+    }
+
+    private Token lexHexOrBinOrOct(int start) {
+        advance(); // consume '0'
+        char baseChar = advance(); // consume 'x' / 'b' / 'o'
+
+        boolean hasDigit = switch (baseChar) {
+            case 'x' -> isHexDigit(peek());
+            case 'b' -> isBinDigit(peek());
+            case 'o' -> isOctDigit(peek());
+            default -> false;
+        };
+
+        if (!hasDigit)
+            throw new LexerError.InvalidNumberLiteral(source.substring(start, position), new Span(start, position));
+
+        while (switch (baseChar) {
+            case 'x' -> isHexDigit(peek()) || peek() == '_';
+            case 'b' -> isBinDigit(peek()) || peek() == '_';
+            case 'o' -> isOctDigit(peek()) || peek() == '_';
+            default -> false;
+        }) {
+            advance();
+        }
+
+        if (peek() != '#')
+            throw new LexerError.InvalidNumberLiteral(source.substring(start, position), new Span(start, position));
+
+        advance(); // consume '#'
+
+        expectSuffix(start);
+
+        return new Token(TokenKind.Literal.INTEGER, new Span(start, position));
+    }
+
+    private void consumeDecimalDigitRun() {
+        if (!isDigit(peek()))
+            throw new IllegalStateException("Expected decimal digit, but got: " + peek());
+
+        while (isDigit(peek()) || peek() == '_')
+            advance();
+    }
+
+    private Token lexDecimalOrFloat(int start) {
+        consumeDecimalDigitRun();
+
+        boolean isFloat = false;
+
+        if (peek() == '.') {
+            isFloat = true;
+            advance(); // consume '.'
+
+            if (!isDigit(peek()))
+                throw new LexerError.InvalidNumberLiteral(source.substring(start, position), new Span(start, position));
+
+            consumeDecimalDigitRun();
+        }
+
+        if (peek() != '#')
+            throw new LexerError.InvalidNumberLiteral(source.substring(start, position), new Span(start, position));
+
+        advance(); // consume '#'
+        expectSuffix(start);
+
+        TokenKind kind = isFloat ? TokenKind.Literal.FLOAT : TokenKind.Literal.INTEGER;
+
+        return new Token(kind, new Span(start, position));
+    }
+
+    private Token lexNumber() {
+        int start = position;
+
+        if (peek() == '0' && (peek(1) == 'x' || peek(1) == 'b' || peek(1) == 'o'))
+            return lexHexOrBinOrOct(start);
+
+        return lexDecimalOrFloat(start);
+    }
+
 }
