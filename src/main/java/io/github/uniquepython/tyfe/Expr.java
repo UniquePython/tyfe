@@ -1,0 +1,68 @@
+package io.github.uniquepython.tyfe;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+
+public sealed interface Expr
+        permits Expr.Literal, Expr.Identifier, Expr.Unary, Expr.Binary, Expr.Block, Expr.If, Expr.While {
+
+    Span span();
+
+    record Literal(LiteralValue value, Span span) implements Expr {
+        public Literal {
+            Objects.requireNonNull(value, "value");
+            Objects.requireNonNull(span, "span");
+        }
+    }
+
+    record Identifier(String name, Span span) implements Expr {
+        public Identifier {
+            Objects.requireNonNull(name, "name");
+            Objects.requireNonNull(span, "span");
+        }
+    }
+
+    record Unary(UnaryOperator operator, Expr operand, Span span) implements Expr {
+        public Unary {
+            Objects.requireNonNull(operator, "operator");
+            Objects.requireNonNull(operand, "operand");
+            Objects.requireNonNull(span, "span");
+        }
+    }
+
+    record Binary(Expr left, BinaryOperator operator, Expr right, Span span) implements Expr {
+        public Binary {
+            Objects.requireNonNull(left, "left");
+            Objects.requireNonNull(operator, "operator");
+            Objects.requireNonNull(right, "right");
+            Objects.requireNonNull(span, "span");
+        }
+    }
+
+    record Block(List<Stmt> statements, Optional<Expr> produceValue, Span span) implements Expr {
+        public Block {
+            Objects.requireNonNull(statements, "statements");
+            Objects.requireNonNull(produceValue, "produceValue");
+            Objects.requireNonNull(span, "span");
+        }
+    }
+
+    record If(Expr condition, Expr thenBranch, Expr elseBranch, Span span) implements Expr {
+        public If {
+            Objects.requireNonNull(condition, "condition");
+            Objects.requireNonNull(thenBranch, "thenBranch");
+            Objects.requireNonNull(elseBranch, "elseBranch");
+            Objects.requireNonNull(span, "span");
+        }
+    }
+
+    record While(Expr condition, Expr body, Span span) implements Expr {
+        public While {
+            Objects.requireNonNull(condition, "condition");
+            Objects.requireNonNull(body, "body");
+            Objects.requireNonNull(span, "span");
+        }
+    }
+
+}
