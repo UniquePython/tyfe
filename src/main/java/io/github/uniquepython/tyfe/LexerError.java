@@ -54,7 +54,7 @@ public abstract sealed class LexerError extends TyfeError
         private final String characterLiteral;
 
         public InvalidCharacterLiteral(String characterLiteral, Span span) {
-            super("Invalid character literal of length %d".formatted(characterLiteral.length()), span);
+            super("Invalid character literal: %s".formatted(characterLiteral), span);
             this.characterLiteral = characterLiteral;
         }
 

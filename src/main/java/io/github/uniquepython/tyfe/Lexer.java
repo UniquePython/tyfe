@@ -137,8 +137,13 @@ public class Lexer {
             advance();
             advance();
             advance();
-        } else
-            throw new LexerError.InvalidNumberLiteral(source.substring(start, position), new Span(start, position));
+            return;
+        }
+
+        while (isIdentifierBody(peek()))
+            advance();
+
+        throw new LexerError.InvalidNumberLiteral(source.substring(start, position), new Span(start, position));
     }
 
     private boolean isDigit(char c) {
