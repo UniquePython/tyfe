@@ -231,4 +231,43 @@ public class Lexer {
         return lexDecimalOrFloat(start);
     }
 
+    private Token lexChar() {
+        int start = position;
+
+        advance(); // consume opening '\''
+
+        if (isAtEnd() || peek() == '\n')
+            throw new LexerError.UnterminatedCharLiteral(new Span(start, position));
+
+        if (peek() == '\'') {
+            advance(); // consume closing '\''
+
+            throw new LexerError.InvalidCharacterLiteral(source.substring(start, position), new Span(start, position));
+        }
+
+        if (peek() == '\\') {
+            advance(); // consume '\'
+
+            if (isAtEnd() || peek() == '\n')
+                throw new LexerError.UnterminatedCharLiteral(new Span(start, position));
+
+            char escape = peek();
+
+            if (escape != 'n' && escape != 't' && escape != 'r' && escape != '\\' && escape != '\'' && escape != '0')
+                throw new LexerError.InvalidEscapeSequence(source.substring(position - 1, position + 1),
+                        new Span(position - 1, position + 1));
+
+            advance(); // consume escape character
+        } else {
+            advance(); // consume ordinary character
+        }
+
+        if (peek() != '\'')
+            throw new LexerError.InvalidCharacterLiteral(source.substring(start, position), new Span(start, position));
+
+        advance(); // consume closing '\''
+
+        return new Token(TokenKind.Literal.CHAR, new Span(start, position));
+    }
+
 }
