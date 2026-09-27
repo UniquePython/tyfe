@@ -32,6 +32,13 @@ public final class Parser {
         return peek().kind() == TokenKind.Sentinel.EOF;
     }
 
+    private LiteralizedToken expect(TokenKind kind) {
+        if (peek().kind() != kind) {
+            throw new ParserError.UnexpectedToken(peek().kind(), kind.toString(), peek().span());
+        }
+        return advance();
+    }
+
     private Expr.Literal parseLiteral() {
         LiteralizedToken token = advance();
         return new Expr.Literal(token.value(), token.span());
