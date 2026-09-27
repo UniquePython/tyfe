@@ -215,4 +215,18 @@ public final class Interpreter {
         return new ExecResult.Normal();
     }
 
+    private static ExecResult executeBlock(Expr.Block block, Environment env) {
+        Environment blockEnv = env.child();
+
+        for (Stmt stmt : block.statements()) {
+            ExecResult result = execute(stmt, blockEnv);
+
+            if (!(result instanceof ExecResult.Normal)) {
+                return result;
+            }
+        }
+
+        return new ExecResult.Normal();
+    }
+
 }
