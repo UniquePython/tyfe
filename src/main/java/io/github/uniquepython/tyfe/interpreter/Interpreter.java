@@ -20,7 +20,7 @@ public final class Interpreter {
             case Expr.Binary binary -> evaluateBinary(binary, env);
             case Expr.Block block -> evaluateBlock(block, env);
             case Expr.If ifExpr -> evaluateIf(ifExpr, env);
-            default -> throw new UnsupportedOperationException("not yet implemented: " + expr);
+            case Expr.While whileExpr -> evaluateWhile(whileExpr, env);
         };
     }
 
@@ -230,6 +230,32 @@ public final class Interpreter {
             case Expr.Block block -> evaluateBlock(block, env);
             case Expr.If ifExpr -> evaluateIf(ifExpr, env);
         };
+    }
+
+    private static RuntimeValue evaluateWhile(Expr.While whileExpr, Environment env) {
+        while (true) {
+            RuntimeValue condition = evaluate(whileExpr.condition(), env);
+            boolean conditionValue = ((RuntimeValue.BoolValue) condition).value();
+
+            if (!conditionValue) {
+                return new RuntimeValue.NothingValue();
+            }
+
+            ExecResult bodyResult = executeBlock(whileExpr.body(), env);
+
+            switch (bodyResult) {
+                case ExecResult.Normal _ -> {
+                }
+                case ExecResult.Skip _ -> {
+                }
+                case ExecResult.Stop _ -> {
+                    return new RuntimeValue.NothingValue();
+                }
+                case ExecResult.Produce produce -> {
+                    return produce.value();
+                }
+            }
+        }
     }
 
     public static ExecResult execute(Stmt stmt, Environment env) {
