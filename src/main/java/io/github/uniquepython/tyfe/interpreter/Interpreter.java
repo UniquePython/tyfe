@@ -210,4 +210,9 @@ public final class Interpreter {
         return new ExecResult.Normal();
     }
 
+    private static ExecResult executeExpressionStatement(Stmt.ExpressionStatement stmt, Environment env) {
+        evaluate(stmt.expression(), env);
+        return new ExecResult.Normal();
+    }
+
 }
