@@ -25,7 +25,7 @@ public final class TypeChecker {
             case Expr.Unary unary -> checkUnary(unary, ctx);
             case Expr.Binary binary -> checkBinary(binary, ctx);
             case Expr.Block block -> checkBlock(block, ctx);
-            case Expr.If ifExpr -> throw new UnsupportedOperationException("not yet implemented");
+            case Expr.If ifExpr -> checkIf(ifExpr, ctx);
             case Expr.While whileExpr -> throw new UnsupportedOperationException("not yet implemented");
         };
     }
@@ -136,6 +136,30 @@ public final class TypeChecker {
 
     private static boolean isTerminator(Stmt statement) {
         return statement instanceof Stmt.Produce || statement instanceof Stmt.Stop || statement instanceof Stmt.Skip;
+    }
+
+    private static Type checkIf(Expr.If ifExpr, TypeCheckContext ctx) {
+        Type conditionType = checkExpr(ifExpr.condition(), ctx);
+
+        if (conditionType != Type.Primitive.BOOL) {
+            throw new TypeCheckError.NonBooleanCondition(conditionType, ifExpr.condition().span());
+        }
+
+        Type thenType = checkBlock(ifExpr.thenBranch(), ctx);
+        Type elseType = checkElseBranch(ifExpr.elseBranch(), ctx);
+
+        if (thenType != elseType) {
+            throw new TypeCheckError.BranchTypeMismatch(thenType, elseType, ifExpr.span());
+        }
+
+        return thenType;
+    }
+
+    private static Type checkElseBranch(Expr.ElseBranch elseBranch, TypeCheckContext ctx) {
+        return switch (elseBranch) {
+            case Expr.Block block -> checkBlock(block, ctx);
+            case Expr.If ifExpr -> checkIf(ifExpr, ctx);
+        };
     }
 
     public static Type checkStmt(Stmt stmt, TypeCheckContext ctx) {
