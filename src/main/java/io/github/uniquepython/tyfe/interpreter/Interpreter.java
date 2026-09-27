@@ -16,6 +16,30 @@ public final class Interpreter {
         };
     }
 
+    private static RuntimeValue evaluateBinary(Expr.Binary binary) {
+        if (binary.operator() instanceof BinaryOperator.Logical logical) {
+            return evaluateLogical(logical, binary.left(), binary.right());
+        }
+
+        RuntimeValue left = evaluate(binary.left());
+        RuntimeValue right = evaluate(binary.right());
+
+        return switch (binary.operator()) {
+            case BinaryOperator.Arithmetic arithmetic -> evaluateArithmetic(arithmetic, left, right, binary.span());
+            case BinaryOperator.Comparison comparison -> evaluateComparison(comparison, left, right);
+            case BinaryOperator.Logical _ -> throw new IllegalStateException("unreachable: handled above");
+        };
+    }
+
+    private static RuntimeValue evaluateLogical(BinaryOperator.Logical operator, Expr leftExpr, Expr rightExpr) {
+        boolean left = ((RuntimeValue.BoolValue) evaluate(leftExpr)).value();
+
+        return switch (operator) {
+            case AND -> left ? evaluate(rightExpr) : new RuntimeValue.BoolValue(false);
+            case OR -> left ? new RuntimeValue.BoolValue(true) : evaluate(rightExpr);
+        };
+    }
+
     private static RuntimeValue evaluateArithmetic(BinaryOperator.Arithmetic operator, RuntimeValue left,
             RuntimeValue right, Span span) {
         return switch (left) {
