@@ -32,16 +32,27 @@ public final class Parser {
         return peek().kind() == TokenKind.Sentinel.EOF;
     }
 
-    public Expr.Literal parseLiteral() {
-        TokenKind kind = peek().kind();
-        boolean isLiteralToken = kind instanceof TokenKind.Literal;
-
-        if (!isLiteralToken) {
-            throw new ParserError.UnexpectedToken(kind, "a literal", peek().span());
-        }
-
+    private Expr.Literal parseLiteral() {
         LiteralizedToken token = advance();
         return new Expr.Literal(token.value(), token.span());
+    }
+
+    private Expr.Identifier parseIdentifier() {
+        LiteralizedToken token = advance();
+        String name = source.substring(token.span().start(), token.span().end());
+        return new Expr.Identifier(name, token.span());
+    }
+
+    public Expr parsePrimary() {
+        TokenKind kind = peek().kind();
+
+        if (kind instanceof TokenKind.Literal)
+            return parseLiteral();
+
+        if (kind == TokenKind.Identifier.IDENT)
+            return parseIdentifier();
+
+        throw new ParserError.UnexpectedToken(kind, "an expression", peek().span());
     }
 
 }
