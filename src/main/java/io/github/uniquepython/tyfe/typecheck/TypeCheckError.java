@@ -9,7 +9,8 @@ import io.github.uniquepython.tyfe.ast.BinaryOperator;
 public abstract sealed class TypeCheckError extends TyfeError
         permits TypeCheckError.DuplicateDeclaration, TypeCheckError.UndeclaredIdentifier,
         TypeCheckError.InvalidOperandType, TypeCheckError.OperandTypeMismatch, TypeCheckError.UnreachableCode,
-        TypeCheckError.StopOrSkipOutsideLoop, TypeCheckError.DeclarationTypeMismatch,
+        TypeCheckError.StopOrSkipOutsideLoop, TypeCheckError.ProduceOutsideBlock,
+        TypeCheckError.DeclarationTypeMismatch,
         TypeCheckError.AssignmentTypeMismatch,
         TypeCheckError.ReassignmentOfConst, TypeCheckError.NonBooleanCondition, TypeCheckError.BranchTypeMismatch {
 
@@ -129,6 +130,14 @@ public abstract sealed class TypeCheckError extends TyfeError
 
         public String keyword() {
             return keyword;
+        }
+
+    }
+
+    public static final class ProduceOutsideBlock extends TypeCheckError {
+
+        public ProduceOutsideBlock(Span span) {
+            super("'produce' used outside of a block", span);
         }
 
     }

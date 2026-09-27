@@ -190,6 +190,9 @@ public final class TypeChecker {
     }
 
     private static Type checkProduce(Stmt.Produce stmt, TypeCheckContext ctx) {
+        if (!ctx.insideBlock()) {
+            throw new TypeCheckError.ProduceOutsideBlock(stmt.span());
+        }
         return checkExpr(stmt.value(), ctx);
     }
 
