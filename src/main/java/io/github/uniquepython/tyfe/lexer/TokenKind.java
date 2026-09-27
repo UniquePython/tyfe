@@ -19,17 +19,32 @@ public sealed interface TokenKind
         CHAR,
         NOTHING,
         YES,
-        NO,
+        NO;
+
+        @Override
+        public String toString() {
+            return "keyword %s".formatted(this.name().toLowerCase());
+        }
     }
 
     enum Literal implements TokenKind {
         INTEGER,
         FLOAT,
-        CHAR,
+        CHAR;
+
+        @Override
+        public String toString() {
+            return "%s literal".formatted(this.name().toLowerCase());
+        }
     }
 
     enum Identifier implements TokenKind {
-        IDENT,
+        IDENT;
+
+        @Override
+        public String toString() {
+            return "identifier";
+        }
     }
 
     sealed interface Operator extends TokenKind
@@ -43,7 +58,19 @@ public sealed interface TokenKind
                 MUL,
                 DIV,
                 MOD,
-                EXP
+                EXP;
+
+                @Override
+                public String toString() {
+                    return switch (this) {
+                        case PLUS -> "+";
+                        case MINUS -> "-";
+                        case MUL -> "*";
+                        case DIV -> "/";
+                        case MOD -> "%";
+                        case EXP -> "**";
+                    };
+                }
             }
 
         }
@@ -60,7 +87,23 @@ public sealed interface TokenKind
                 NLT,
                 NGT,
                 NLTE,
-                NGTE,
+                NGTE;
+
+                @Override
+                public String toString() {
+                    return switch (this) {
+                        case EQ -> "==";
+                        case NEQ -> "!=";
+                        case LT -> "<";
+                        case GT -> ">";
+                        case LTE -> "<=";
+                        case GTE -> ">=";
+                        case NLT -> "!<";
+                        case NGT -> "!>";
+                        case NLTE -> "!<=";
+                        case NGTE -> "!>=";
+                    };
+                }
             }
 
         }
@@ -68,11 +111,25 @@ public sealed interface TokenKind
         enum Logical implements Operator {
             AND,
             OR,
-            NOT
+            NOT;
+
+            @Override
+            public String toString() {
+                return switch (this) {
+                    case AND -> "&&";
+                    case OR -> "||";
+                    case NOT -> "!";
+                };
+            }
         }
 
         enum Assignment implements Operator {
-            ASSIGN,
+            ASSIGN;
+
+            @Override
+            public String toString() {
+                return "=";
+            }
         }
 
     }
@@ -82,11 +139,27 @@ public sealed interface TokenKind
         RPAREN,
         LBRACE,
         RBRACE,
-        SEMI_COLON,
+        SEMI_COLON;
+
+        @Override
+        public String toString() {
+            return switch (this) {
+                case LPAREN -> "(";
+                case RPAREN -> ")";
+                case LBRACE -> "{";
+                case RBRACE -> "}";
+                case SEMI_COLON -> ";";
+            };
+        }
     }
 
     enum Sentinel implements TokenKind {
-        EOF,
+        EOF;
+
+        @Override
+        public String toString() {
+            return "end of file";
+        }
     }
 
 }
