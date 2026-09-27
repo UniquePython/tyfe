@@ -211,4 +211,25 @@ public final class Parser {
         return new Expr.Block(statements, start.merge(end));
     }
 
+    private Stmt parseStatement() {
+        TokenKind kind = peek().kind();
+
+        if (kind == TokenKind.Keyword.MUT || kind == TokenKind.Keyword.CONST)
+            return parseDeclaration();
+
+        if (kind == TokenKind.Identifier.IDENT && peek(1).kind() == TokenKind.Operator.Assignment.ASSIGN)
+            return parseAssignment();
+
+        if (kind == TokenKind.Keyword.PRODUCE)
+            return parseProduce();
+
+        if (kind == TokenKind.Keyword.STOP)
+            return parseStop();
+
+        if (kind == TokenKind.Keyword.SKIP)
+            return parseSkip();
+
+        return parseExpressionStatement();
+    }
+
 }
