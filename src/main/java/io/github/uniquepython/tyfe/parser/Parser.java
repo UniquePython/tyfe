@@ -302,4 +302,40 @@ public final class Parser {
         return new Stmt.ExpressionStatement(expression, expression.span().merge(end));
     }
 
+    private Expr parseCondition() {
+        expect(TokenKind.Punctuation.LPAREN);
+        Expr condition = parseExpression();
+        expect(TokenKind.Punctuation.RPAREN);
+        return condition;
+    }
+
+    private Expr.If parseIf() {
+        Span start = expect(TokenKind.Keyword.IF).span();
+        Expr condition = parseCondition();
+        Expr.Block thenBranch = parseBlock();
+
+        expect(TokenKind.Keyword.ELSE);
+
+        Expr.ElseBranch elseBranch;
+        Span elseSpan;
+        if (peek().kind() == TokenKind.Keyword.IF) {
+            Expr.If nested = parseIf();
+            elseBranch = nested;
+            elseSpan = nested.span();
+        } else {
+            Expr.Block block = parseBlock();
+            elseBranch = block;
+            elseSpan = block.span();
+        }
+
+        return new Expr.If(condition, thenBranch, elseBranch, start.merge(elseSpan));
+    }
+
+    private Expr.While parseWhile() {
+        Span start = expect(TokenKind.Keyword.WHILE).span();
+        Expr condition = parseCondition();
+        Expr.Block body = parseBlock();
+        return new Expr.While(condition, body, start.merge(body.span()));
+    }
+
 }
