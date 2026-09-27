@@ -5,13 +5,23 @@ public sealed interface UnaryOperator permits UnaryOperator.Arithmetic, UnaryOpe
     sealed interface Arithmetic extends UnaryOperator permits Arithmetic.Checked {
 
         enum Checked implements Arithmetic {
-            NEG
+            NEG {
+                @Override
+                public String toString() {
+                    return "-";
+                }
+            },
         }
 
     }
 
     enum Logical implements UnaryOperator {
-        NOT
+        NOT {
+            @Override
+            public String toString() {
+                return "!";
+            }
+        },
     }
 
 }
