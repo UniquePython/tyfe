@@ -7,9 +7,11 @@ import io.github.uniquepython.tyfe.literal.LiteralValue;
 import io.github.uniquepython.tyfe.literal.LiteralizedToken;
 import io.github.uniquepython.tyfe.lexer.TokenKind;
 import io.github.uniquepython.tyfe.ast.Expr;
+import io.github.uniquepython.tyfe.ast.Mutability;
 import io.github.uniquepython.tyfe.ast.Stmt;
 import io.github.uniquepython.tyfe.ast.BinaryOperator;
 import io.github.uniquepython.tyfe.ast.UnaryOperator;
+import io.github.uniquepython.tyfe.ast.Type;
 import io.github.uniquepython.tyfe.common.Span;
 
 public final class Parser {
@@ -230,6 +232,36 @@ public final class Parser {
             return parseSkip();
 
         return parseExpressionStatement();
+    }
+
+    private Type parseType() {
+        TokenKind kind = peek().kind();
+        Type type = switch (kind) {
+            case TokenKind.Keyword.I32 -> Type.Primitive.I32;
+            case TokenKind.Keyword.F64 -> Type.Primitive.F64;
+            case TokenKind.Keyword.BOOL -> Type.Primitive.BOOL;
+            case TokenKind.Keyword.CHAR -> Type.Primitive.CHAR;
+            default -> throw new ParserError.UnexpectedToken(kind, "a type", peek().span());
+        };
+        advance();
+        return type;
+    }
+
+    private Stmt.Declaration parseDeclaration() {
+        LiteralizedToken mutToken = advance(); // consumes 'mut' or 'const', already checked by caller
+        Mutability mutability = mutToken.kind() == TokenKind.Keyword.MUT ? Mutability.MUT : Mutability.CONST;
+
+        Type type = parseType();
+
+        LiteralizedToken nameToken = expect(TokenKind.Identifier.IDENT);
+        LiteralValue.IdentValue ident = (LiteralValue.IdentValue) nameToken.value();
+        String name = ident.name();
+
+        expect(TokenKind.Operator.Assignment.ASSIGN);
+        Expr initializer = parseExpression();
+        Span end = expect(TokenKind.Punctuation.SEMI_COLON).span();
+
+        return new Stmt.Declaration(mutability, type, name, initializer, mutToken.span().merge(end));
     }
 
 }
