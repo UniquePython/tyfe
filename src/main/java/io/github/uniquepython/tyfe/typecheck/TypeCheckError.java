@@ -8,7 +8,7 @@ import io.github.uniquepython.tyfe.ast.BinaryOperator;
 
 public abstract sealed class TypeCheckError extends TyfeError
         permits TypeCheckError.DuplicateDeclaration, TypeCheckError.UndeclaredIdentifier,
-        TypeCheckError.InvalidOperandType {
+        TypeCheckError.InvalidOperandType, TypeCheckError.OperandTypeMismatch {
 
     protected TypeCheckError(String message, Span span) {
         super(message, span);
@@ -75,6 +75,34 @@ public abstract sealed class TypeCheckError extends TyfeError
 
         public Type actualType() {
             return actualType;
+        }
+
+    }
+
+    public static final class OperandTypeMismatch extends TypeCheckError {
+
+        private final String operator;
+        private final Type leftType;
+        private final Type rightType;
+
+        public OperandTypeMismatch(BinaryOperator operator, Type leftType, Type rightType, Span span) {
+            super("Operator '%s' requires both operands to be the same type, but got %s and %s"
+                    .formatted(operator.toString(), leftType, rightType), span);
+            this.operator = operator.toString();
+            this.leftType = leftType;
+            this.rightType = rightType;
+        }
+
+        public String operator() {
+            return operator;
+        }
+
+        public Type leftType() {
+            return leftType;
+        }
+
+        public Type rightType() {
+            return rightType;
         }
 
     }
