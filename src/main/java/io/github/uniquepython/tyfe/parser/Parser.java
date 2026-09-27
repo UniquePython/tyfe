@@ -1,11 +1,13 @@
 package io.github.uniquepython.tyfe.parser;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import io.github.uniquepython.tyfe.literal.LiteralValue;
 import io.github.uniquepython.tyfe.literal.LiteralizedToken;
 import io.github.uniquepython.tyfe.lexer.TokenKind;
 import io.github.uniquepython.tyfe.ast.Expr;
+import io.github.uniquepython.tyfe.ast.Stmt;
 import io.github.uniquepython.tyfe.ast.BinaryOperator;
 import io.github.uniquepython.tyfe.ast.UnaryOperator;
 import io.github.uniquepython.tyfe.common.Span;
@@ -187,6 +189,18 @@ public final class Parser {
 
     public Expr parseExpression() {
         return parseOr();
+    }
+
+    private Expr.Block parseBlock() {
+        Span start = expect(TokenKind.Punctuation.LBRACE).span();
+
+        List<Stmt> statements = new ArrayList<>();
+        while (peek().kind() != TokenKind.Punctuation.RBRACE && !isAtEnd()) {
+            statements.add(parseStatement());
+        }
+
+        Span end = expect(TokenKind.Punctuation.RBRACE).span();
+        return new Expr.Block(statements, start.merge(end));
     }
 
 }
