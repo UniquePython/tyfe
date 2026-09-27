@@ -186,4 +186,8 @@ public final class Parser {
         throw new ParserError.UnexpectedToken(kind, "an expression", peek().span());
     }
 
+    public Expr parseExpression() {
+        return parseOr();
+    }
+
 }
