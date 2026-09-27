@@ -59,6 +59,13 @@ public final class Parser {
         if (kind == TokenKind.Identifier.IDENT)
             return parseIdentifier();
 
+        if (kind == TokenKind.Punctuation.LPAREN) {
+            advance();
+            Expr inner = parseExpression();
+            expect(TokenKind.Punctuation.RPAREN);
+            return inner;
+        }
+
         throw new ParserError.UnexpectedToken(kind, "an expression", peek().span());
     }
 
