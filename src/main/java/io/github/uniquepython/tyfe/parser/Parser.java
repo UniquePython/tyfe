@@ -91,4 +91,30 @@ public final class Parser {
         return left;
     }
 
+    private Expr parseComparison() {
+        Expr left = parseAdditive();
+
+        TokenKind kind = peek().kind();
+        if (kind instanceof TokenKind.Operator.Comparison.Checked op) {
+            advance();
+            Expr right = parseAdditive();
+            Span span = left.span().merge(right.span());
+
+            left = switch (op) {
+                case EQ -> new Expr.Binary(left, BinaryOperator.Comparison.EQ, right, span);
+                case NEQ -> new Expr.Binary(left, BinaryOperator.Comparison.NEQ, right, span);
+                case LT -> new Expr.Binary(left, BinaryOperator.Comparison.LT, right, span);
+                case LTE -> new Expr.Binary(left, BinaryOperator.Comparison.LTE, right, span);
+                case GT -> new Expr.Binary(right, BinaryOperator.Comparison.LT, left, span);
+                case GTE -> new Expr.Binary(right, BinaryOperator.Comparison.LTE, left, span);
+                case NLT -> new Expr.Binary(right, BinaryOperator.Comparison.LTE, left, span);
+                case NLTE -> new Expr.Binary(right, BinaryOperator.Comparison.LT, left, span);
+                case NGT -> new Expr.Binary(left, BinaryOperator.Comparison.LTE, right, span);
+                case NGTE -> new Expr.Binary(left, BinaryOperator.Comparison.LT, right, span);
+            };
+        }
+
+        return left;
+    }
+
 }
