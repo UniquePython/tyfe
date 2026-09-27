@@ -17,8 +17,9 @@ Early days. Currently implemented:
 - Literal evaluation (turning literal tokens into runtime values)
 - A first slice of the AST (expressions, statements, types)
 - A scoped down parser
+- A typechecker
 
-Not yet implemented: typechecker, interpreter — so nothing
+Not yet implemented: interpreter — so nothing
 actually *runs* yet beyond `Main` printing a placeholder line.
 
 v1 scope (the first end-to-end slice being aimed for) is intentionally
