@@ -19,6 +19,7 @@ public final class Interpreter {
             case Expr.Unary unary -> evaluateUnary(unary, env);
             case Expr.Binary binary -> evaluateBinary(binary, env);
             case Expr.Block block -> evaluateBlock(block, env);
+            case Expr.If ifExpr -> evaluateIf(ifExpr, env);
             default -> throw new UnsupportedOperationException("not yet implemented: " + expr);
         };
     }
@@ -203,6 +204,24 @@ public final class Interpreter {
             case ExecResult.Skip _ ->
                 throw new IllegalStateException(
                         "unreachable: skip escaped a block used as expression, typechecker should have caught this");
+        };
+    }
+
+    private static RuntimeValue evaluateIf(Expr.If ifExpr, Environment env) {
+        RuntimeValue condition = evaluate(ifExpr.condition(), env);
+        boolean conditionValue = ((RuntimeValue.BoolValue) condition).value();
+
+        if (conditionValue) {
+            return evaluateBlock(ifExpr.thenBranch(), env);
+        } else {
+            return evaluateElseBranch(ifExpr.elseBranch(), env);
+        }
+    }
+
+    private static RuntimeValue evaluateElseBranch(Expr.ElseBranch elseBranch, Environment env) {
+        return switch (elseBranch) {
+            case Expr.Block block -> evaluateBlock(block, env);
+            case Expr.If ifExpr -> evaluateIf(ifExpr, env);
         };
     }
 
