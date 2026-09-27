@@ -195,6 +195,15 @@ public final class Parser {
             return inner;
         }
 
+        if (kind == TokenKind.Punctuation.LBRACE)
+            return parseBlock();
+
+        if (kind == TokenKind.Keyword.IF)
+            return parseIf();
+
+        if (kind == TokenKind.Keyword.WHILE)
+            return parseWhile();
+
         throw new ParserError.UnexpectedToken(kind, "an expression", peek().span());
     }
 
