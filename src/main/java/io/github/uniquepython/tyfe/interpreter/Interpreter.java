@@ -196,4 +196,10 @@ public final class Interpreter {
         };
     }
 
+    private static ExecResult executeDeclaration(Stmt.Declaration stmt, Environment env) {
+        RuntimeValue value = evaluate(stmt.initializer(), env);
+        env.declare(stmt.name(), value);
+        return new ExecResult.Normal();
+    }
+
 }
