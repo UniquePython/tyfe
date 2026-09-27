@@ -9,7 +9,7 @@ import io.github.uniquepython.tyfe.ast.BinaryOperator;
 public abstract sealed class TypeCheckError extends TyfeError
         permits TypeCheckError.DuplicateDeclaration, TypeCheckError.UndeclaredIdentifier,
         TypeCheckError.InvalidOperandType, TypeCheckError.OperandTypeMismatch, TypeCheckError.UnreachableCode,
-        TypeCheckError.StopOrSkipOutsideLoop {
+        TypeCheckError.StopOrSkipOutsideLoop, TypeCheckError.DeclarationTypeMismatch {
 
     protected TypeCheckError(String message, Span span) {
         super(message, span);
@@ -127,6 +127,27 @@ public abstract sealed class TypeCheckError extends TyfeError
 
         public String keyword() {
             return keyword;
+        }
+
+    }
+
+    public static final class DeclarationTypeMismatch extends TypeCheckError {
+
+        private final Type declaredType;
+        private final Type initializerType;
+
+        public DeclarationTypeMismatch(Type declaredType, Type initializerType, Span span) {
+            super("Declared type %s does not match initializer type %s".formatted(declaredType, initializerType), span);
+            this.declaredType = declaredType;
+            this.initializerType = initializerType;
+        }
+
+        public Type declaredType() {
+            return declaredType;
+        }
+
+        public Type initializerType() {
+            return initializerType;
         }
 
     }
