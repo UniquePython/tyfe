@@ -136,4 +136,25 @@ public final class Parser {
         return left;
     }
 
+    private Expr parseMultiplicative() {
+        Expr left = parseExponent();
+        while (true) {
+            TokenKind kind = peek().kind();
+            BinaryOperator op;
+            if (kind == TokenKind.Operator.Arithmetic.Checked.MUL) {
+                op = BinaryOperator.Arithmetic.Checked.MUL;
+            } else if (kind == TokenKind.Operator.Arithmetic.Checked.DIV) {
+                op = BinaryOperator.Arithmetic.Checked.DIV;
+            } else if (kind == TokenKind.Operator.Arithmetic.Checked.MOD) {
+                op = BinaryOperator.Arithmetic.Checked.MOD;
+            } else {
+                break;
+            }
+            advance();
+            Expr right = parseExponent();
+            left = new Expr.Binary(left, op, right, left.span().merge(right.span()));
+        }
+        return left;
+    }
+
 }
