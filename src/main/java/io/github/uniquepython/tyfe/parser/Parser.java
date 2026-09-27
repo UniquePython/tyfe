@@ -117,4 +117,23 @@ public final class Parser {
         return left;
     }
 
+    private Expr parseAdditive() {
+        Expr left = parseMultiplicative();
+        while (true) {
+            TokenKind kind = peek().kind();
+            BinaryOperator op;
+            if (kind == TokenKind.Operator.Arithmetic.Checked.PLUS) {
+                op = BinaryOperator.Arithmetic.Checked.ADD;
+            } else if (kind == TokenKind.Operator.Arithmetic.Checked.MINUS) {
+                op = BinaryOperator.Arithmetic.Checked.SUB;
+            } else {
+                break;
+            }
+            advance();
+            Expr right = parseMultiplicative();
+            left = new Expr.Binary(left, op, right, left.span().merge(right.span()));
+        }
+        return left;
+    }
+
 }
