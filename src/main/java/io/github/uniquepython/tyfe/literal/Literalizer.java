@@ -27,8 +27,8 @@ public final class Literalizer {
             case TokenKind.Literal.FLOAT -> parseFloat(source, token);
             case TokenKind.Literal.CHAR -> parseChar(source, token);
             case TokenKind.Literal.BOOL -> parseBool(source, token);
+            case TokenKind.Identifier.IDENT -> parseIdentifier(source, token);
             case TokenKind.Keyword _ -> new LiteralValue.None();
-            case TokenKind.Identifier _ -> new LiteralValue.None();
             case TokenKind.Operator _ -> new LiteralValue.None();
             case TokenKind.Punctuation _ -> new LiteralValue.None();
             case TokenKind.Sentinel _ -> new LiteralValue.None();
@@ -133,6 +133,11 @@ public final class Literalizer {
             case "no" -> new LiteralValue.BoolValue(false);
             default -> throw new IllegalStateException("Unexpected boolean literal: " + text);
         };
+    }
+
+    private static LiteralValue parseIdentifier(String source, Token token) {
+        String name = source.substring(token.span().start(), token.span().end());
+        return new LiteralValue.IdentValue(name);
     }
 
 }
