@@ -157,4 +157,14 @@ public final class Parser {
         return left;
     }
 
+    private Expr parseExponent() {
+        Expr left = parseUnary();
+        if (peek().kind() == TokenKind.Operator.Arithmetic.Checked.EXP) {
+            advance();
+            Expr right = parseExponent();
+            return new Expr.Binary(left, BinaryOperator.Arithmetic.Checked.EXP, right, left.span().merge(right.span()));
+        }
+        return left;
+    }
+
 }
