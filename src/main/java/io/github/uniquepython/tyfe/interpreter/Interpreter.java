@@ -3,6 +3,7 @@ package io.github.uniquepython.tyfe.interpreter;
 import io.github.uniquepython.tyfe.ast.Expr;
 import io.github.uniquepython.tyfe.common.Span;
 import io.github.uniquepython.tyfe.ast.BinaryOperator;
+import io.github.uniquepython.tyfe.ast.UnaryOperator;
 
 public final class Interpreter {
 
@@ -146,6 +147,33 @@ public final class Interpreter {
             case RuntimeValue.BoolValue _ ->
                 throw new IllegalStateException(
                         "unreachable: bool has no ordering, typechecker should have rejected this");
+        };
+    }
+
+    private static RuntimeValue evaluateUnary(Expr.Unary unary) {
+        RuntimeValue operand = evaluate(unary.operand());
+
+        return switch (unary.operator()) {
+            case UnaryOperator.Arithmetic.Checked.NEG -> evaluateNeg(operand, unary.span());
+            case UnaryOperator.Logical.NOT -> {
+                boolean value = ((RuntimeValue.BoolValue) operand).value();
+                yield new RuntimeValue.BoolValue(!value);
+            }
+            default -> throw new IllegalStateException("unreachable: unknown unary operator");
+        };
+    }
+
+    private static RuntimeValue evaluateNeg(RuntimeValue operand, Span span) {
+        return switch (operand) {
+            case RuntimeValue.IntValue(int v) -> {
+                try {
+                    yield new RuntimeValue.IntValue(Math.negateExact(v));
+                } catch (ArithmeticException e) {
+                    throw new TyfeCatastrophe.IntegerOverflow("unary -", span);
+                }
+            }
+            case RuntimeValue.FloatValue(double v) -> new RuntimeValue.FloatValue(-v);
+            default -> throw new IllegalStateException("unreachable: unary - on non-numeric type");
         };
     }
 
