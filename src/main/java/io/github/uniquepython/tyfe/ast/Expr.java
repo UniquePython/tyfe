@@ -68,6 +68,7 @@ public sealed interface Expr
     }
 
     sealed interface ElseBranch permits Block, If {
+        Span span();
     }
 
 }

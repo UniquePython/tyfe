@@ -317,18 +317,12 @@ public final class Parser {
         expect(TokenKind.Keyword.ELSE);
 
         Expr.ElseBranch elseBranch;
-        Span elseSpan;
-        if (peek().kind() == TokenKind.Keyword.IF) {
-            Expr.If nested = parseIf();
-            elseBranch = nested;
-            elseSpan = nested.span();
-        } else {
-            Expr.Block block = parseBlock();
-            elseBranch = block;
-            elseSpan = block.span();
-        }
+        if (peek().kind() == TokenKind.Keyword.IF)
+            elseBranch = parseIf();
+        else
+            elseBranch = parseBlock();
 
-        return new Expr.If(condition, thenBranch, elseBranch, start.merge(elseSpan));
+        return new Expr.If(condition, thenBranch, elseBranch, start.merge(elseBranch.span()));
     }
 
     private Expr.While parseWhile() {
