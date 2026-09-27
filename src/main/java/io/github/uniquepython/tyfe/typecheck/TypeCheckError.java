@@ -11,7 +11,7 @@ public abstract sealed class TypeCheckError extends TyfeError
         TypeCheckError.InvalidOperandType, TypeCheckError.OperandTypeMismatch, TypeCheckError.UnreachableCode,
         TypeCheckError.StopOrSkipOutsideLoop, TypeCheckError.DeclarationTypeMismatch,
         TypeCheckError.AssignmentTypeMismatch,
-        TypeCheckError.ReassignmentOfConst, TypeCheckError.NonBooleanCondition {
+        TypeCheckError.ReassignmentOfConst, TypeCheckError.NonBooleanCondition, TypeCheckError.BranchTypeMismatch {
 
     protected TypeCheckError(String message, Span span) {
         super(message, span);
@@ -201,6 +201,28 @@ public abstract sealed class TypeCheckError extends TyfeError
 
         public Type actualType() {
             return actualType;
+        }
+
+    }
+
+    public static final class BranchTypeMismatch extends TypeCheckError {
+
+        private final Type thenType;
+        private final Type elseType;
+
+        public BranchTypeMismatch(Type thenType, Type elseType, Span span) {
+            super("Branches of conditionals must produce the same type, but got %s and %s".formatted(thenType,
+                    elseType), span);
+            this.thenType = thenType;
+            this.elseType = elseType;
+        }
+
+        public Type thenType() {
+            return thenType;
+        }
+
+        public Type elseType() {
+            return elseType;
         }
 
     }
