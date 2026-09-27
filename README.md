@@ -16,8 +16,9 @@ Early days. Currently implemented:
   mandatory type suffixes, comments)
 - Literal evaluation (turning literal tokens into runtime values)
 - A first slice of the AST (expressions, statements, types)
+- A scoped down parser
 
-Not yet implemented: parser, typechecker, interpreter — so nothing
+Not yet implemented: typechecker, interpreter — so nothing
 actually *runs* yet beyond `Main` printing a placeholder line.
 
 v1 scope (the first end-to-end slice being aimed for) is intentionally
@@ -42,5 +43,4 @@ mvn compile
 mvn -q compile exec:java
 ```
 
-(There's nothing to run against yet — no parser/interpreter exists,
-so this just executes `Main`.)
+(There's nothing to run against yet — no interpreter exists, so this just executes `Main`.)
