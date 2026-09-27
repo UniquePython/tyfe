@@ -84,4 +84,45 @@ public final class Interpreter {
         };
     }
 
+    private static RuntimeValue evaluateComparison(BinaryOperator.Comparison operator, RuntimeValue left,
+            RuntimeValue right) {
+        return switch (operator) {
+            case EQ -> new RuntimeValue.BoolValue(valuesEqual(left, right));
+            case NEQ -> new RuntimeValue.BoolValue(!valuesEqual(left, right));
+            case LT -> new RuntimeValue.BoolValue(lessThan(left, right));
+            case LTE -> new RuntimeValue.BoolValue(lessThanOrEqual(left, right));
+        };
+    }
+
+    private static boolean valuesEqual(RuntimeValue left, RuntimeValue right) {
+        return switch (left) {
+            case RuntimeValue.IntValue(int l) -> l == ((RuntimeValue.IntValue) right).value();
+            case RuntimeValue.FloatValue(double l) -> l == ((RuntimeValue.FloatValue) right).value();
+            case RuntimeValue.BoolValue(boolean l) -> l == ((RuntimeValue.BoolValue) right).value();
+            case RuntimeValue.CharValue(byte l) -> l == ((RuntimeValue.CharValue) right).value();
+        };
+    }
+
+    private static boolean lessThan(RuntimeValue left, RuntimeValue right) {
+        return switch (left) {
+            case RuntimeValue.IntValue(int l) -> l < ((RuntimeValue.IntValue) right).value();
+            case RuntimeValue.FloatValue(double l) -> l < ((RuntimeValue.FloatValue) right).value();
+            case RuntimeValue.CharValue(byte l) -> l < ((RuntimeValue.CharValue) right).value();
+            case RuntimeValue.BoolValue _ ->
+                throw new IllegalStateException(
+                        "unreachable: bool has no ordering, typechecker should have rejected this");
+        };
+    }
+
+    private static boolean lessThanOrEqual(RuntimeValue left, RuntimeValue right) {
+        return switch (left) {
+            case RuntimeValue.IntValue(int l) -> l <= ((RuntimeValue.IntValue) right).value();
+            case RuntimeValue.FloatValue(double l) -> l <= ((RuntimeValue.FloatValue) right).value();
+            case RuntimeValue.CharValue(byte l) -> l <= ((RuntimeValue.CharValue) right).value();
+            case RuntimeValue.BoolValue _ ->
+                throw new IllegalStateException(
+                        "unreachable: bool has no ordering, typechecker should have rejected this");
+        };
+    }
+
 }
