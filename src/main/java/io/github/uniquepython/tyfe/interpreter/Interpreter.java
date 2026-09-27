@@ -3,6 +3,7 @@ package io.github.uniquepython.tyfe.interpreter;
 import io.github.uniquepython.tyfe.ast.Expr;
 import io.github.uniquepython.tyfe.ast.Stmt;
 import io.github.uniquepython.tyfe.common.Span;
+import io.github.uniquepython.tyfe.ast.AssignmentTarget;
 import io.github.uniquepython.tyfe.ast.BinaryOperator;
 import io.github.uniquepython.tyfe.ast.UnaryOperator;
 
@@ -199,6 +200,13 @@ public final class Interpreter {
     private static ExecResult executeDeclaration(Stmt.Declaration stmt, Environment env) {
         RuntimeValue value = evaluate(stmt.initializer(), env);
         env.declare(stmt.name(), value);
+        return new ExecResult.Normal();
+    }
+
+    private static ExecResult executeAssignment(Stmt.Assignment stmt, Environment env) {
+        String name = ((AssignmentTarget.Identifier) stmt.target()).name();
+        RuntimeValue value = evaluate(stmt.value(), env);
+        env.assign(name, value);
         return new ExecResult.Normal();
     }
 
