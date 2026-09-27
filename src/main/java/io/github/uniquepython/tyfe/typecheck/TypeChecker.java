@@ -1,10 +1,14 @@
 package io.github.uniquepython.tyfe.typecheck;
 
 import io.github.uniquepython.tyfe.ast.Expr;
+import io.github.uniquepython.tyfe.ast.Stmt;
 import io.github.uniquepython.tyfe.ast.Type;
 import io.github.uniquepython.tyfe.literal.LiteralValue;
 import io.github.uniquepython.tyfe.ast.UnaryOperator;
 import io.github.uniquepython.tyfe.common.Span;
+
+import java.util.List;
+
 import io.github.uniquepython.tyfe.ast.BinaryOperator;
 
 public final class TypeChecker {
@@ -18,7 +22,7 @@ public final class TypeChecker {
             case Expr.Identifier identifier -> checkIdentifier(identifier, ctx);
             case Expr.Unary unary -> checkUnary(unary, ctx);
             case Expr.Binary binary -> checkBinary(binary, ctx);
-            case Expr.Block block -> throw new UnsupportedOperationException("not yet implemented");
+            case Expr.Block block -> checkBlock(block, ctx);
             case Expr.If ifExpr -> throw new UnsupportedOperationException("not yet implemented");
             case Expr.While whileExpr -> throw new UnsupportedOperationException("not yet implemented");
         };
@@ -98,6 +102,38 @@ public final class TypeChecker {
             throw new TypeCheckError.InvalidOperandType(operator, operandType, span);
         }
         return Type.Primitive.BOOL;
+    }
+
+    private static Type checkBlock(Expr.Block block, TypeCheckContext ctx) {
+        TypeCheckContext blockCtx = ctx.withNewScope();
+
+        Type blockType = Type.Nothing.NOTHING;
+        boolean seenTerminator = false;
+
+        List<Stmt> statements = block.statements();
+        for (int i = 0; i < statements.size(); i++) {
+            Stmt statement = statements.get(i);
+
+            if (seenTerminator) {
+                throw new TypeCheckError.UnreachableCode(statement.span());
+            }
+
+            Type stmtType = checkStmt(statement, blockCtx);
+
+            if (isTerminator(statement)) {
+                seenTerminator = true;
+            }
+
+            if (blockType == Type.Nothing.NOTHING && stmtType != Type.Nothing.NOTHING) {
+                blockType = stmtType;
+            }
+        }
+
+        return blockType;
+    }
+
+    private static boolean isTerminator(Stmt statement) {
+        return statement instanceof Stmt.Produce || statement instanceof Stmt.Stop || statement instanceof Stmt.Skip;
     }
 
 }
