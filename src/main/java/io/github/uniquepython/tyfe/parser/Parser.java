@@ -341,4 +341,12 @@ public final class Parser {
         return new Expr.While(condition, body, start.merge(body.span()));
     }
 
+    public List<Stmt> parse() {
+        List<Stmt> statements = new ArrayList<>();
+        while (!isAtEnd()) {
+            statements.add(parseStatement());
+        }
+        return statements;
+    }
+
 }
