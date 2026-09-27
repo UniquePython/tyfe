@@ -36,7 +36,7 @@ public final class Parser {
 
     private LiteralizedToken expect(TokenKind kind) {
         if (peek().kind() != kind) {
-            throw new ParserError.UnexpectedToken(peek().kind(), kind.toString(), peek().span());
+            throw new ParserError.UnexpectedToken(peek().kind(), kind, peek().span());
         }
         return advance();
     }

@@ -21,6 +21,12 @@ public sealed abstract class ParserError extends TyfeError permits ParserError.U
             this.expected = expected;
         }
 
+        public UnexpectedToken(TokenKind found, TokenKind expected, Span span) {
+            super("Expected %s, but found %s".formatted(expected, found), span);
+            this.found = found;
+            this.expected = expected.toString();
+        }
+
         public TokenKind found() {
             return found;
         }
