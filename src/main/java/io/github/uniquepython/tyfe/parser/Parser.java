@@ -7,10 +7,12 @@ import io.github.uniquepython.tyfe.ast.Expr;
 
 public final class Parser {
 
+    private final String source;
     private final List<LiteralizedToken> tokens;
     private int position;
 
-    public Parser(List<LiteralizedToken> tokens) {
+    public Parser(String source, List<LiteralizedToken> tokens) {
+        this.source = source;
         this.tokens = tokens;
         this.position = 0;
     }
