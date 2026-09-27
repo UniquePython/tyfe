@@ -1,6 +1,7 @@
 package io.github.uniquepython.tyfe.typecheck;
 
 import io.github.uniquepython.tyfe.ast.Expr;
+import io.github.uniquepython.tyfe.ast.Mutability;
 import io.github.uniquepython.tyfe.ast.Stmt;
 import io.github.uniquepython.tyfe.ast.Type;
 import io.github.uniquepython.tyfe.literal.LiteralValue;
@@ -9,6 +10,7 @@ import io.github.uniquepython.tyfe.common.Span;
 
 import java.util.List;
 
+import io.github.uniquepython.tyfe.ast.AssignmentTarget;
 import io.github.uniquepython.tyfe.ast.BinaryOperator;
 
 public final class TypeChecker {
@@ -178,6 +180,25 @@ public final class TypeChecker {
         }
 
         ctx.env().declare(stmt.name(), stmt.type(), stmt.mutability(), stmt.span());
+
+        return Type.Nothing.NOTHING;
+    }
+
+    private static Type checkAssignment(Stmt.Assignment stmt, TypeCheckContext ctx) {
+        String name = ((AssignmentTarget.Identifier) stmt.target()).name();
+
+        VariableInfo info = ctx.env().resolve(name)
+                .orElseThrow(() -> new TypeCheckError.UndeclaredIdentifier(name, stmt.target().span()));
+
+        Type valueType = checkExpr(stmt.value(), ctx);
+
+        if (info.mutability() != Mutability.MUT) {
+            throw new TypeCheckError.ReassignmentOfConst(name, stmt.span());
+        }
+
+        if (valueType != info.type()) {
+            throw new TypeCheckError.AssignmentTypeMismatch(info.type(), valueType, stmt.span());
+        }
 
         return Type.Nothing.NOTHING;
     }
