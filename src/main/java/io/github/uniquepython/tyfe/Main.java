@@ -104,7 +104,7 @@ public final class Main {
         try {
             List<Token> tokens = new Lexer(source).lex();
             List<LiteralizedToken> literalizedTokens = Literalizer.literalize(source, tokens);
-            Expr expression = new Parser(source, literalizedTokens).parseExpression();
+            Expr expression = new Parser(literalizedTokens).parseExpression();
 
             System.out.println(expression);
         } catch (RuntimeException e) {

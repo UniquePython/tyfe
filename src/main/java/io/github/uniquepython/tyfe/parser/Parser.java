@@ -1,6 +1,8 @@
 package io.github.uniquepython.tyfe.parser;
 
 import java.util.List;
+
+import io.github.uniquepython.tyfe.literal.LiteralValue;
 import io.github.uniquepython.tyfe.literal.LiteralizedToken;
 import io.github.uniquepython.tyfe.lexer.TokenKind;
 import io.github.uniquepython.tyfe.ast.Expr;
@@ -9,13 +11,10 @@ import io.github.uniquepython.tyfe.ast.UnaryOperator;
 import io.github.uniquepython.tyfe.common.Span;
 
 public final class Parser {
-
-    private final String source;
     private final List<LiteralizedToken> tokens;
     private int position;
 
-    public Parser(String source, List<LiteralizedToken> tokens) {
-        this.source = source;
+    public Parser(List<LiteralizedToken> tokens) {
         this.tokens = tokens;
         this.position = 0;
     }
@@ -163,8 +162,8 @@ public final class Parser {
 
     private Expr.Identifier parseIdentifier() {
         LiteralizedToken token = advance();
-        String name = source.substring(token.span().start(), token.span().end());
-        return new Expr.Identifier(name, token.span());
+        LiteralValue.IdentValue ident = (LiteralValue.IdentValue) token.value();
+        return new Expr.Identifier(ident.name(), token.span());
     }
 
     public Expr parsePrimary() {
