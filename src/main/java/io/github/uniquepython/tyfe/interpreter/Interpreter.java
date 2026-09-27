@@ -10,22 +10,22 @@ public final class Interpreter {
     private Interpreter() {
     }
 
-    public static RuntimeValue evaluate(Expr expr) {
+    public static RuntimeValue evaluate(Expr expr, Environment env) {
         return switch (expr) {
             case Expr.Literal literal -> RuntimeValue.fromLiteral(literal.value());
-            case Expr.Unary unary -> evaluateUnary(unary);
-            case Expr.Binary binary -> evaluateBinary(binary);
+            case Expr.Unary unary -> evaluateUnary(unary, env);
+            case Expr.Binary binary -> evaluateBinary(binary, env);
             default -> throw new UnsupportedOperationException("not yet implemented: " + expr);
         };
     }
 
-    private static RuntimeValue evaluateBinary(Expr.Binary binary) {
+    private static RuntimeValue evaluateBinary(Expr.Binary binary, Environment env) {
         if (binary.operator() instanceof BinaryOperator.Logical logical) {
-            return evaluateLogical(logical, binary.left(), binary.right());
+            return evaluateLogical(logical, binary.left(), binary.right(), env);
         }
 
-        RuntimeValue left = evaluate(binary.left());
-        RuntimeValue right = evaluate(binary.right());
+        RuntimeValue left = evaluate(binary.left(), env);
+        RuntimeValue right = evaluate(binary.right(), env);
 
         return switch (binary.operator()) {
             case BinaryOperator.Arithmetic arithmetic -> evaluateArithmetic(arithmetic, left, right, binary.span());
@@ -34,12 +34,13 @@ public final class Interpreter {
         };
     }
 
-    private static RuntimeValue evaluateLogical(BinaryOperator.Logical operator, Expr leftExpr, Expr rightExpr) {
-        boolean left = ((RuntimeValue.BoolValue) evaluate(leftExpr)).value();
+    private static RuntimeValue evaluateLogical(BinaryOperator.Logical operator, Expr leftExpr, Expr rightExpr,
+            Environment env) {
+        boolean left = ((RuntimeValue.BoolValue) evaluate(leftExpr, env)).value();
 
         return switch (operator) {
-            case AND -> left ? evaluate(rightExpr) : new RuntimeValue.BoolValue(false);
-            case OR -> left ? new RuntimeValue.BoolValue(true) : evaluate(rightExpr);
+            case AND -> left ? evaluate(rightExpr, env) : new RuntimeValue.BoolValue(false);
+            case OR -> left ? new RuntimeValue.BoolValue(true) : evaluate(rightExpr, env);
         };
     }
 
@@ -152,8 +153,8 @@ public final class Interpreter {
         };
     }
 
-    private static RuntimeValue evaluateUnary(Expr.Unary unary) {
-        RuntimeValue operand = evaluate(unary.operand());
+    private static RuntimeValue evaluateUnary(Expr.Unary unary, Environment env) {
+        RuntimeValue operand = evaluate(unary.operand(), env);
 
         return switch (unary.operator()) {
             case UnaryOperator.Arithmetic.Checked.NEG -> evaluateNeg(operand, unary.span());
