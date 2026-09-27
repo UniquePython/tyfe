@@ -21,8 +21,16 @@ public final class Parser {
         this.position = 0;
     }
 
+    private LiteralizedToken peek(int offset) {
+        int index = position + offset;
+        if (index >= tokens.size()) {
+            return tokens.get(tokens.size() - 1); // EOF is guaranteed to be the last token
+        }
+        return tokens.get(index);
+    }
+
     private LiteralizedToken peek() {
-        return tokens.get(position);
+        return peek(0);
     }
 
     private LiteralizedToken advance() {
