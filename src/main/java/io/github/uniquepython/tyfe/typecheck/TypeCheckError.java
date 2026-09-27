@@ -8,7 +8,7 @@ import io.github.uniquepython.tyfe.ast.BinaryOperator;
 
 public abstract sealed class TypeCheckError extends TyfeError
         permits TypeCheckError.DuplicateDeclaration, TypeCheckError.UndeclaredIdentifier,
-        TypeCheckError.InvalidOperandType, TypeCheckError.OperandTypeMismatch {
+        TypeCheckError.InvalidOperandType, TypeCheckError.OperandTypeMismatch, TypeCheckError.UnreachableCode {
 
     protected TypeCheckError(String message, Span span) {
         super(message, span);
@@ -103,6 +103,14 @@ public abstract sealed class TypeCheckError extends TyfeError
 
         public Type rightType() {
             return rightType;
+        }
+
+    }
+
+    public static final class UnreachableCode extends TypeCheckError {
+
+        public UnreachableCode(Span span) {
+            super("Unreachable code", span);
         }
 
     }
