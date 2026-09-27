@@ -179,7 +179,7 @@ public final class Parser {
         return new Expr.Identifier(ident.name(), token.span());
     }
 
-    public Expr parsePrimary() {
+    private Expr parsePrimary() {
         TokenKind kind = peek().kind();
 
         if (kind instanceof TokenKind.Literal)
@@ -207,7 +207,7 @@ public final class Parser {
         throw new ParserError.UnexpectedToken(kind, "an expression", peek().span());
     }
 
-    public Expr parseExpression() {
+    private Expr parseExpression() {
         return parseOr();
     }
 
