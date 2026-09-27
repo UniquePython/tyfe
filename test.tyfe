@@ -1,0 +1,73 @@
+// Exercise mut/const declarations across all four primitive types
+const i32 base = 7#i32;
+mut i32 total = 0#i32;
+const f64 pi_ish = 3.14#f64;
+mut bool found = no;
+const char grade = 'A';
+
+// Arithmetic: + - * / % ** all exercised, no overflow
+mut i32 arithmetic_result = (base + 3#i32) * 2#i32 - 4#i32 / 2#i32 % 3#i32;
+mut i32 power = 2#i32 ** 5#i32;
+
+// Comparisons, including desugared forms (> >= !< !> etc.)
+mut bool cmp1 = base > 5#i32;
+mut bool cmp2 = base >= 7#i32;
+mut bool cmp3 = base !< 10#i32;
+mut bool cmp4 = base !> 100#i32;
+mut bool cmp5 = pi_ish < 4.0#f64;
+mut bool cmp6 = grade == 'A';
+
+// Logical operators with short-circuiting: right side should NEVER run
+// (if it did, it would panic on division by zero)
+mut bool short_circuit_and = no && (1#i32 / 0#i32 == 0#i32);
+mut bool short_circuit_or = yes || (1#i32 / 0#i32 == 0#i32);
+
+// Unary operators
+mut i32 negated = -base;
+mut bool negated_bool = !found;
+
+// if/else-if/else as an expression, assigned to a variable
+mut i32 classification = if (arithmetic_result < 0#i32) {
+    produce -1#i32;
+} else if (arithmetic_result == 0#i32) {
+    produce 0#i32;
+} else {
+    produce 1#i32;
+};
+
+// while loop that accumulates via produce, with skip and stop
+mut i32 i = 0#i32;
+mut i32 sum_of_evens = while (i < 20#i32) {
+    i = i + 1#i32;
+
+    if (i % 2#i32 != 0#i32) {
+        skip;
+    }
+    else {};
+
+    total = total + i;
+
+    if (total > 50#i32) {
+    produce total;
+    }
+    else {
+        produce total;
+    };
+};
+
+// while loop that runs to completion without ever producing -> nothing
+mut i32 j = 0#i32;
+while (j < 5#i32) {
+    j = j + 1#i32;
+};
+
+// Nested blocks as expressions
+mut i32 nested = {
+    mut i32 inner = 10#i32;
+    produce inner * 2#i32;
+};
+
+// A block that never produces, used purely as a statement (value discarded)
+{
+    mut i32 unused = 99#i32;
+};
