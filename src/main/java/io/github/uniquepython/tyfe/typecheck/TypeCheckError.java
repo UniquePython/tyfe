@@ -9,7 +9,8 @@ import io.github.uniquepython.tyfe.ast.BinaryOperator;
 public abstract sealed class TypeCheckError extends TyfeError
         permits TypeCheckError.DuplicateDeclaration, TypeCheckError.UndeclaredIdentifier,
         TypeCheckError.InvalidOperandType, TypeCheckError.OperandTypeMismatch, TypeCheckError.UnreachableCode,
-        TypeCheckError.StopOrSkipOutsideLoop, TypeCheckError.DeclarationTypeMismatch {
+        TypeCheckError.StopOrSkipOutsideLoop, TypeCheckError.DeclarationTypeMismatch,
+        TypeCheckError.ReassignmentOfConst {
 
     protected TypeCheckError(String message, Span span) {
         super(message, span);
@@ -148,6 +149,21 @@ public abstract sealed class TypeCheckError extends TyfeError
 
         public Type initializerType() {
             return initializerType;
+        }
+
+    }
+
+    public static final class ReassignmentOfConst extends TypeCheckError {
+
+        private final String name;
+
+        public ReassignmentOfConst(String name, Span span) {
+            super("Cannot reassign '%s': declared as const".formatted(name), span);
+            this.name = name;
+        }
+
+        public String name() {
+            return name;
         }
 
     }
