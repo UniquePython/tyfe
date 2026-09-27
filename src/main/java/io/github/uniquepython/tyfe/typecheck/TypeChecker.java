@@ -26,7 +26,7 @@ public final class TypeChecker {
             case Expr.Binary binary -> checkBinary(binary, ctx);
             case Expr.Block block -> checkBlock(block, ctx);
             case Expr.If ifExpr -> checkIf(ifExpr, ctx);
-            case Expr.While whileExpr -> throw new UnsupportedOperationException("not yet implemented");
+            case Expr.While whileExpr -> checkWhile(whileExpr, ctx);
         };
     }
 
@@ -160,6 +160,17 @@ public final class TypeChecker {
             case Expr.Block block -> checkBlock(block, ctx);
             case Expr.If ifExpr -> checkIf(ifExpr, ctx);
         };
+    }
+
+    private static Type checkWhile(Expr.While whileExpr, TypeCheckContext ctx) {
+        Type conditionType = checkExpr(whileExpr.condition(), ctx);
+
+        if (conditionType != Type.Primitive.BOOL) {
+            throw new TypeCheckError.NonBooleanCondition(conditionType, whileExpr.condition().span());
+        }
+
+        TypeCheckContext bodyCtx = ctx.withInsideLoop();
+        return checkBlock(whileExpr.body(), bodyCtx);
     }
 
     public static Type checkStmt(Stmt stmt, TypeCheckContext ctx) {
