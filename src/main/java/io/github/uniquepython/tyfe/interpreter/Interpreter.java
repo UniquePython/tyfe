@@ -13,9 +13,42 @@ public final class Interpreter {
     public static RuntimeValue evaluate(Expr expr, Environment env) {
         return switch (expr) {
             case Expr.Literal literal -> RuntimeValue.fromLiteral(literal.value());
+            case Expr.Identifier identifier -> evaluateIdentifier(identifier, env);
             case Expr.Unary unary -> evaluateUnary(unary, env);
             case Expr.Binary binary -> evaluateBinary(binary, env);
             default -> throw new UnsupportedOperationException("not yet implemented: " + expr);
+        };
+    }
+
+    private static RuntimeValue evaluateIdentifier(Expr.Identifier identifier, Environment env) {
+        return env.resolve(identifier.name()).orElseThrow(() -> new IllegalStateException(
+                "unreachable: undeclared identifier, typechecker should have caught this: " + identifier.name()));
+    }
+
+    private static RuntimeValue evaluateUnary(Expr.Unary unary, Environment env) {
+        RuntimeValue operand = evaluate(unary.operand(), env);
+
+        return switch (unary.operator()) {
+            case UnaryOperator.Arithmetic.Checked.NEG -> evaluateNeg(operand, unary.span());
+            case UnaryOperator.Logical.NOT -> {
+                boolean value = ((RuntimeValue.BoolValue) operand).value();
+                yield new RuntimeValue.BoolValue(!value);
+            }
+            default -> throw new IllegalStateException("unreachable: unknown unary operator");
+        };
+    }
+
+    private static RuntimeValue evaluateNeg(RuntimeValue operand, Span span) {
+        return switch (operand) {
+            case RuntimeValue.IntValue(int v) -> {
+                try {
+                    yield new RuntimeValue.IntValue(Math.negateExact(v));
+                } catch (ArithmeticException e) {
+                    throw new TyfeCatastrophe.IntegerOverflow("unary -", span);
+                }
+            }
+            case RuntimeValue.FloatValue(double v) -> new RuntimeValue.FloatValue(-v);
+            default -> throw new IllegalStateException("unreachable: unary - on non-numeric type");
         };
     }
 
@@ -150,33 +183,6 @@ public final class Interpreter {
             case RuntimeValue.BoolValue _ ->
                 throw new IllegalStateException(
                         "unreachable: bool has no ordering, typechecker should have rejected this");
-        };
-    }
-
-    private static RuntimeValue evaluateUnary(Expr.Unary unary, Environment env) {
-        RuntimeValue operand = evaluate(unary.operand(), env);
-
-        return switch (unary.operator()) {
-            case UnaryOperator.Arithmetic.Checked.NEG -> evaluateNeg(operand, unary.span());
-            case UnaryOperator.Logical.NOT -> {
-                boolean value = ((RuntimeValue.BoolValue) operand).value();
-                yield new RuntimeValue.BoolValue(!value);
-            }
-            default -> throw new IllegalStateException("unreachable: unknown unary operator");
-        };
-    }
-
-    private static RuntimeValue evaluateNeg(RuntimeValue operand, Span span) {
-        return switch (operand) {
-            case RuntimeValue.IntValue(int v) -> {
-                try {
-                    yield new RuntimeValue.IntValue(Math.negateExact(v));
-                } catch (ArithmeticException e) {
-                    throw new TyfeCatastrophe.IntegerOverflow("unary -", span);
-                }
-            }
-            case RuntimeValue.FloatValue(double v) -> new RuntimeValue.FloatValue(-v);
-            default -> throw new IllegalStateException("unreachable: unary - on non-numeric type");
         };
     }
 
