@@ -11,7 +11,7 @@ public abstract sealed class TypeCheckError extends TyfeError
         TypeCheckError.InvalidOperandType, TypeCheckError.OperandTypeMismatch, TypeCheckError.UnreachableCode,
         TypeCheckError.StopOrSkipOutsideLoop, TypeCheckError.DeclarationTypeMismatch,
         TypeCheckError.AssignmentTypeMismatch,
-        TypeCheckError.ReassignmentOfConst {
+        TypeCheckError.ReassignmentOfConst, TypeCheckError.NonBooleanCondition {
 
     protected TypeCheckError(String message, Span span) {
         super(message, span);
@@ -186,6 +186,21 @@ public abstract sealed class TypeCheckError extends TyfeError
 
         public String name() {
             return name;
+        }
+
+    }
+
+    public static final class NonBooleanCondition extends TypeCheckError {
+
+        private final Type actualType;
+
+        public NonBooleanCondition(Type actualType, Span span) {
+            super("Condition must be of type bool, but got %s".formatted(actualType), span);
+            this.actualType = actualType;
+        }
+
+        public Type actualType() {
+            return actualType;
         }
 
     }
