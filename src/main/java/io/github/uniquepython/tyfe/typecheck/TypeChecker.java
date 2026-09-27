@@ -12,7 +12,7 @@ public final class TypeChecker {
     public static Type checkExpr(Expr expr, TypeCheckContext ctx) {
         return switch (expr) {
             case Expr.Literal literal -> checkLiteral(literal);
-            case Expr.Identifier identifier -> throw new UnsupportedOperationException("not yet implemented");
+            case Expr.Identifier identifier -> checkIdentifier(identifier, ctx);
             case Expr.Unary unary -> throw new UnsupportedOperationException("not yet implemented");
             case Expr.Binary binary -> throw new UnsupportedOperationException("not yet implemented");
             case Expr.Block block -> throw new UnsupportedOperationException("not yet implemented");
@@ -31,6 +31,11 @@ public final class TypeChecker {
                 throw new IllegalStateException("unreachable: Expr.Literal cannot wrap an identifier");
             case LiteralValue.None _ -> throw new IllegalStateException("unreachable: Expr.Literal cannot wrap None");
         };
+    }
+
+    private static Type checkIdentifier(Expr.Identifier identifier, TypeCheckContext ctx) {
+        return ctx.env().resolve(identifier.name()).map(VariableInfo::type)
+                .orElseThrow(() -> new TypeCheckError.UndeclaredIdentifier(identifier.name(), identifier.span()));
     }
 
 }
