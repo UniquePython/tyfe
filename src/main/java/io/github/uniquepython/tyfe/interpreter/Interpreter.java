@@ -263,7 +263,9 @@ public final class Interpreter {
             case Stmt.Declaration declaration -> executeDeclaration(declaration, env);
             case Stmt.Assignment assignment -> executeAssignment(assignment, env);
             case Stmt.ExpressionStatement expressionStatement -> executeExpressionStatement(expressionStatement, env);
-            default -> throw new UnsupportedOperationException("not yet implemented: " + stmt);
+            case Stmt.Produce produce -> executeProduce(produce, env);
+            case Stmt.Stop stop -> executeStop(stop, env);
+            case Stmt.Skip skip -> executeSkip(skip, env);
         };
     }
 
@@ -297,6 +299,19 @@ public final class Interpreter {
         }
 
         return new ExecResult.Normal();
+    }
+
+    private static ExecResult executeProduce(Stmt.Produce stmt, Environment env) {
+        RuntimeValue value = evaluate(stmt.value(), env);
+        return new ExecResult.Produce(value);
+    }
+
+    private static ExecResult executeStop(Stmt.Stop stmt, Environment env) {
+        return new ExecResult.Stop();
+    }
+
+    private static ExecResult executeSkip(Stmt.Skip stmt, Environment env) {
+        return new ExecResult.Skip();
     }
 
 }
