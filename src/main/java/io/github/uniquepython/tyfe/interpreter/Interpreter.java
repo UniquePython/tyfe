@@ -13,6 +13,8 @@ public final class Interpreter {
     public static RuntimeValue evaluate(Expr expr) {
         return switch (expr) {
             case Expr.Literal literal -> RuntimeValue.fromLiteral(literal.value());
+            case Expr.Unary unary -> evaluateUnary(unary);
+            case Expr.Binary binary -> evaluateBinary(binary);
             default -> throw new UnsupportedOperationException("not yet implemented: " + expr);
         };
     }
