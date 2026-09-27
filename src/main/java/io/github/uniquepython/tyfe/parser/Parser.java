@@ -5,6 +5,7 @@ import io.github.uniquepython.tyfe.literal.LiteralizedToken;
 import io.github.uniquepython.tyfe.lexer.TokenKind;
 import io.github.uniquepython.tyfe.ast.Expr;
 import io.github.uniquepython.tyfe.ast.BinaryOperator;
+import io.github.uniquepython.tyfe.ast.UnaryOperator;
 import io.github.uniquepython.tyfe.common.Span;
 
 public final class Parser {
@@ -39,36 +40,6 @@ public final class Parser {
             throw new ParserError.UnexpectedToken(peek().kind(), kind.toString(), peek().span());
         }
         return advance();
-    }
-
-    private Expr.Literal parseLiteral() {
-        LiteralizedToken token = advance();
-        return new Expr.Literal(token.value(), token.span());
-    }
-
-    private Expr.Identifier parseIdentifier() {
-        LiteralizedToken token = advance();
-        String name = source.substring(token.span().start(), token.span().end());
-        return new Expr.Identifier(name, token.span());
-    }
-
-    public Expr parsePrimary() {
-        TokenKind kind = peek().kind();
-
-        if (kind instanceof TokenKind.Literal)
-            return parseLiteral();
-
-        if (kind == TokenKind.Identifier.IDENT)
-            return parseIdentifier();
-
-        if (kind == TokenKind.Punctuation.LPAREN) {
-            advance();
-            Expr inner = parseExpression();
-            expect(TokenKind.Punctuation.RPAREN);
-            return inner;
-        }
-
-        throw new ParserError.UnexpectedToken(kind, "an expression", peek().span());
     }
 
     private Expr parseOr() {
@@ -165,6 +136,54 @@ public final class Parser {
             return new Expr.Binary(left, BinaryOperator.Arithmetic.Checked.EXP, right, left.span().merge(right.span()));
         }
         return left;
+    }
+
+    private Expr parseUnary() {
+        TokenKind kind = peek().kind();
+
+        if (kind == TokenKind.Operator.Arithmetic.Checked.MINUS) {
+            Span start = advance().span();
+            Expr operand = parseUnary();
+            return new Expr.Unary(UnaryOperator.Arithmetic.Checked.NEG, operand, start.merge(operand.span()));
+        }
+
+        if (kind == TokenKind.Operator.Logical.NOT) {
+            Span start = advance().span();
+            Expr operand = parseUnary();
+            return new Expr.Unary(UnaryOperator.Logical.NOT, operand, start.merge(operand.span()));
+        }
+
+        return parsePrimary();
+    }
+
+    private Expr.Literal parseLiteral() {
+        LiteralizedToken token = advance();
+        return new Expr.Literal(token.value(), token.span());
+    }
+
+    private Expr.Identifier parseIdentifier() {
+        LiteralizedToken token = advance();
+        String name = source.substring(token.span().start(), token.span().end());
+        return new Expr.Identifier(name, token.span());
+    }
+
+    public Expr parsePrimary() {
+        TokenKind kind = peek().kind();
+
+        if (kind instanceof TokenKind.Literal)
+            return parseLiteral();
+
+        if (kind == TokenKind.Identifier.IDENT)
+            return parseIdentifier();
+
+        if (kind == TokenKind.Punctuation.LPAREN) {
+            advance();
+            Expr inner = parseExpression();
+            expect(TokenKind.Punctuation.RPAREN);
+            return inner;
+        }
+
+        throw new ParserError.UnexpectedToken(kind, "an expression", peek().span());
     }
 
 }
