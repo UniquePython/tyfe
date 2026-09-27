@@ -156,4 +156,18 @@ public final class TypeChecker {
         return checkExpr(stmt.value(), ctx);
     }
 
+    private static Type checkStop(Stmt.Stop stmt, TypeCheckContext ctx) {
+        if (!ctx.insideLoop()) {
+            throw new TypeCheckError.StopOrSkipOutsideLoop("stop", stmt.span());
+        }
+        return Type.Nothing.NOTHING;
+    }
+
+    private static Type checkSkip(Stmt.Skip stmt, TypeCheckContext ctx) {
+        if (!ctx.insideLoop()) {
+            throw new TypeCheckError.StopOrSkipOutsideLoop("skip", stmt.span());
+        }
+        return Type.Nothing.NOTHING;
+    }
+
 }
