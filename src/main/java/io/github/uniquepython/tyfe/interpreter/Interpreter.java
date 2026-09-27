@@ -18,6 +18,7 @@ public final class Interpreter {
             case Expr.Identifier identifier -> evaluateIdentifier(identifier, env);
             case Expr.Unary unary -> evaluateUnary(unary, env);
             case Expr.Binary binary -> evaluateBinary(binary, env);
+            case Expr.Block block -> evaluateBlock(block, env);
             default -> throw new UnsupportedOperationException("not yet implemented: " + expr);
         };
     }
@@ -185,6 +186,23 @@ public final class Interpreter {
             case RuntimeValue.BoolValue _ ->
                 throw new IllegalStateException(
                         "unreachable: bool has no ordering, typechecker should have rejected this");
+        };
+    }
+
+    private static RuntimeValue evaluateBlock(Expr.Block block, Environment env) {
+        ExecResult result = executeBlock(block, env);
+
+        return switch (result) {
+            case ExecResult.Produce produce -> produce.value();
+            case ExecResult.Normal _ ->
+                throw new IllegalStateException(
+                        "unreachable: block used as expression never produced a value, typechecker should have caught this");
+            case ExecResult.Stop _ ->
+                throw new IllegalStateException(
+                        "unreachable: stop escaped a block used as expression, typechecker should have caught this");
+            case ExecResult.Skip _ ->
+                throw new IllegalStateException(
+                        "unreachable: skip escaped a block used as expression, typechecker should have caught this");
         };
     }
 
