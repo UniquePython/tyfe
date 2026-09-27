@@ -147,4 +147,9 @@ public final class TypeChecker {
         };
     }
 
+    private static Type checkExpressionStatement(Stmt.ExpressionStatement stmt, TypeCheckContext ctx) {
+        checkExpr(stmt.expression(), ctx);
+        return Type.Nothing.NOTHING;
+    }
+
 }
