@@ -3,7 +3,8 @@ package io.github.uniquepython.tyfe.typecheck;
 import io.github.uniquepython.tyfe.common.Span;
 import io.github.uniquepython.tyfe.common.TyfeError;
 
-public abstract sealed class TypeCheckError extends TyfeError permits TypeCheckError.DuplicateDeclaration {
+public abstract sealed class TypeCheckError extends TyfeError
+        permits TypeCheckError.DuplicateDeclaration, TypeCheckError.UndeclaredIdentifier {
 
     protected TypeCheckError(String message, Span span) {
         super(message, span);
@@ -26,6 +27,21 @@ public abstract sealed class TypeCheckError extends TyfeError permits TypeCheckE
 
         public Span originalSpan() {
             return originalSpan;
+        }
+
+    }
+
+    public static final class UndeclaredIdentifier extends TypeCheckError {
+
+        private final String name;
+
+        public UndeclaredIdentifier(String name, Span span) {
+            super("Undeclared identifier: '%s'".formatted(name), span);
+            this.name = name;
+        }
+
+        public String name() {
+            return name;
         }
 
     }
