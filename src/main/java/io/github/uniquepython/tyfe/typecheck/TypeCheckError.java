@@ -8,7 +8,8 @@ import io.github.uniquepython.tyfe.ast.BinaryOperator;
 
 public abstract sealed class TypeCheckError extends TyfeError
         permits TypeCheckError.DuplicateDeclaration, TypeCheckError.UndeclaredIdentifier,
-        TypeCheckError.InvalidOperandType, TypeCheckError.OperandTypeMismatch, TypeCheckError.UnreachableCode {
+        TypeCheckError.InvalidOperandType, TypeCheckError.OperandTypeMismatch, TypeCheckError.UnreachableCode,
+        TypeCheckError.StopOrSkipOutsideLoop {
 
     protected TypeCheckError(String message, Span span) {
         super(message, span);
@@ -111,6 +112,21 @@ public abstract sealed class TypeCheckError extends TyfeError
 
         public UnreachableCode(Span span) {
             super("Unreachable code", span);
+        }
+
+    }
+
+    public static final class StopOrSkipOutsideLoop extends TypeCheckError {
+
+        private final String keyword;
+
+        public StopOrSkipOutsideLoop(String keyword, Span span) {
+            super("'%s' used outside of a loop".formatted(keyword), span);
+            this.keyword = keyword;
+        }
+
+        public String keyword() {
+            return keyword;
         }
 
     }
