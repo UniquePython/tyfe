@@ -296,4 +296,10 @@ public final class Parser {
         return new Stmt.Skip(start.merge(end));
     }
 
+    private Stmt.ExpressionStatement parseExpressionStatement() {
+        Expr expression = parseExpression();
+        Span end = expect(TokenKind.Punctuation.SEMI_COLON).span();
+        return new Stmt.ExpressionStatement(expression, expression.span().merge(end));
+    }
+
 }
