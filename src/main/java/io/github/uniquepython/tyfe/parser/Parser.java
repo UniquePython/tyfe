@@ -32,11 +32,7 @@ public final class Parser {
 
     public Expr.Literal parseLiteral() {
         TokenKind kind = peek().kind();
-        boolean isLiteralToken = kind == TokenKind.Literal.INTEGER
-                || kind == TokenKind.Literal.FLOAT
-                || kind == TokenKind.Literal.CHAR
-                || kind == TokenKind.Keyword.YES
-                || kind == TokenKind.Keyword.NO;
+        boolean isLiteralToken = kind instanceof TokenKind.Literal;
 
         if (!isLiteralToken) {
             throw new ParserError.UnexpectedToken(kind, "a literal", peek().span());
