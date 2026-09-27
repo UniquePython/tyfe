@@ -4,6 +4,8 @@ import io.github.uniquepython.tyfe.ast.Expr;
 import io.github.uniquepython.tyfe.ast.Type;
 import io.github.uniquepython.tyfe.literal.LiteralValue;
 import io.github.uniquepython.tyfe.ast.UnaryOperator;
+import io.github.uniquepython.tyfe.common.Span;
+import io.github.uniquepython.tyfe.ast.BinaryOperator;
 
 public final class TypeChecker {
 
@@ -15,7 +17,7 @@ public final class TypeChecker {
             case Expr.Literal literal -> checkLiteral(literal);
             case Expr.Identifier identifier -> checkIdentifier(identifier, ctx);
             case Expr.Unary unary -> checkUnary(unary, ctx);
-            case Expr.Binary binary -> throw new UnsupportedOperationException("not yet implemented");
+            case Expr.Binary binary -> checkBinary(binary, ctx);
             case Expr.Block block -> throw new UnsupportedOperationException("not yet implemented");
             case Expr.If ifExpr -> throw new UnsupportedOperationException("not yet implemented");
             case Expr.While whileExpr -> throw new UnsupportedOperationException("not yet implemented");
@@ -56,6 +58,46 @@ public final class TypeChecker {
                 yield Type.Primitive.BOOL;
             }
         };
+    }
+
+    private static Type checkBinary(Expr.Binary binary, TypeCheckContext ctx) {
+        Type leftType = checkExpr(binary.left(), ctx);
+        Type rightType = checkExpr(binary.right(), ctx);
+
+        if (leftType != rightType) {
+            throw new TypeCheckError.OperandTypeMismatch(binary.operator(), leftType, rightType, binary.span());
+        }
+
+        return switch (binary.operator()) {
+            case BinaryOperator.Arithmetic arithmetic -> checkArithmetic(arithmetic, leftType, binary.span());
+            case BinaryOperator.Comparison comparison -> checkComparison(comparison, leftType, binary.span());
+            case BinaryOperator.Logical logical -> checkLogical(logical, leftType, binary.span());
+        };
+    }
+
+    private static Type checkArithmetic(BinaryOperator.Arithmetic operator, Type operandType, Span span) {
+        if (operandType != Type.Primitive.I32 && operandType != Type.Primitive.F64) {
+            throw new TypeCheckError.InvalidOperandType(operator, operandType, span);
+        }
+        return operandType;
+    }
+
+    private static Type checkComparison(BinaryOperator.Comparison operator, Type operandType, Span span) {
+        boolean orderingOp = operator == BinaryOperator.Comparison.LT || operator == BinaryOperator.Comparison.LTE;
+
+        if (orderingOp && operandType != Type.Primitive.I32 && operandType != Type.Primitive.F64
+                && operandType != Type.Primitive.CHAR) {
+            throw new TypeCheckError.InvalidOperandType(operator, operandType, span);
+        }
+
+        return Type.Primitive.BOOL;
+    }
+
+    private static Type checkLogical(BinaryOperator.Logical operator, Type operandType, Span span) {
+        if (operandType != Type.Primitive.BOOL) {
+            throw new TypeCheckError.InvalidOperandType(operator, operandType, span);
+        }
+        return Type.Primitive.BOOL;
     }
 
 }
