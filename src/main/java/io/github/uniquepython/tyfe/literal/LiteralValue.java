@@ -1,7 +1,7 @@
 package io.github.uniquepython.tyfe.literal;
 
 public sealed interface LiteralValue permits LiteralValue.IntValue, LiteralValue.FloatValue, LiteralValue.CharValue,
-        LiteralValue.BoolValue, LiteralValue.None {
+        LiteralValue.BoolValue, LiteralValue.IdentValue, LiteralValue.None {
 
     record IntValue(int value) implements LiteralValue {
         @Override
@@ -36,6 +36,13 @@ public sealed interface LiteralValue permits LiteralValue.IntValue, LiteralValue
         @Override
         public String toString() {
             return Boolean.toString(value);
+        }
+    }
+
+    record IdentValue(String name) implements LiteralValue {
+        @Override
+        public String toString() {
+            return name;
         }
     }
 
