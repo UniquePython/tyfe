@@ -9,6 +9,7 @@ import io.github.uniquepython.tyfe.lexer.TokenKind;
 import io.github.uniquepython.tyfe.ast.Expr;
 import io.github.uniquepython.tyfe.ast.Mutability;
 import io.github.uniquepython.tyfe.ast.Stmt;
+import io.github.uniquepython.tyfe.ast.AssignmentTarget;
 import io.github.uniquepython.tyfe.ast.BinaryOperator;
 import io.github.uniquepython.tyfe.ast.UnaryOperator;
 import io.github.uniquepython.tyfe.ast.Type;
@@ -262,6 +263,18 @@ public final class Parser {
         Span end = expect(TokenKind.Punctuation.SEMI_COLON).span();
 
         return new Stmt.Declaration(mutability, type, name, initializer, mutToken.span().merge(end));
+    }
+
+    private Stmt.Assignment parseAssignment() {
+        LiteralizedToken nameToken = expect(TokenKind.Identifier.IDENT);
+        LiteralValue.IdentValue ident = (LiteralValue.IdentValue) nameToken.value();
+        AssignmentTarget target = new AssignmentTarget.Identifier(ident.name(), nameToken.span());
+
+        expect(TokenKind.Operator.Assignment.ASSIGN);
+        Expr value = parseExpression();
+        Span end = expect(TokenKind.Punctuation.SEMI_COLON).span();
+
+        return new Stmt.Assignment(target, value, nameToken.span().merge(end));
     }
 
 }
