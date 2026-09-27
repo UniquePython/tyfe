@@ -4,6 +4,8 @@ import java.util.List;
 import io.github.uniquepython.tyfe.literal.LiteralizedToken;
 import io.github.uniquepython.tyfe.lexer.TokenKind;
 import io.github.uniquepython.tyfe.ast.Expr;
+import io.github.uniquepython.tyfe.ast.BinaryOperator;
+import io.github.uniquepython.tyfe.common.Span;
 
 public final class Parser {
 
@@ -67,6 +69,26 @@ public final class Parser {
         }
 
         throw new ParserError.UnexpectedToken(kind, "an expression", peek().span());
+    }
+
+    private Expr parseOr() {
+        Expr left = parseAnd();
+        while (peek().kind() == TokenKind.Operator.Logical.OR) {
+            advance();
+            Expr right = parseAnd();
+            left = new Expr.Binary(left, BinaryOperator.Logical.OR, right, left.span().merge(right.span()));
+        }
+        return left;
+    }
+
+    private Expr parseAnd() {
+        Expr left = parseComparison();
+        while (peek().kind() == TokenKind.Operator.Logical.AND) {
+            advance();
+            Expr right = parseComparison();
+            left = new Expr.Binary(left, BinaryOperator.Logical.AND, right, left.span().merge(right.span()));
+        }
+        return left;
     }
 
 }
