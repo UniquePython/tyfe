@@ -2,9 +2,13 @@ package io.github.uniquepython.tyfe.typecheck;
 
 import io.github.uniquepython.tyfe.common.Span;
 import io.github.uniquepython.tyfe.common.TyfeError;
+import io.github.uniquepython.tyfe.ast.Type;
+import io.github.uniquepython.tyfe.ast.UnaryOperator;
+import io.github.uniquepython.tyfe.ast.BinaryOperator;
 
 public abstract sealed class TypeCheckError extends TyfeError
-        permits TypeCheckError.DuplicateDeclaration, TypeCheckError.UndeclaredIdentifier {
+        permits TypeCheckError.DuplicateDeclaration, TypeCheckError.UndeclaredIdentifier,
+        TypeCheckError.InvalidOperandType {
 
     protected TypeCheckError(String message, Span span) {
         super(message, span);
@@ -42,6 +46,35 @@ public abstract sealed class TypeCheckError extends TyfeError
 
         public String name() {
             return name;
+        }
+
+    }
+
+    public static final class InvalidOperandType extends TypeCheckError {
+
+        private final String operator;
+        private final Type actualType;
+
+        public InvalidOperandType(UnaryOperator operator, Type type, Span span) {
+            this(operator.toString(), type, span);
+        }
+
+        public InvalidOperandType(BinaryOperator operator, Type type, Span span) {
+            this(operator.toString(), type, span);
+        }
+
+        private InvalidOperandType(String operator, Type actualType, Span span) {
+            super("Operator '%s' is not defined for type %s".formatted(operator, actualType), span);
+            this.operator = operator;
+            this.actualType = actualType;
+        }
+
+        public String operator() {
+            return operator;
+        }
+
+        public Type actualType() {
+            return actualType;
         }
 
     }
