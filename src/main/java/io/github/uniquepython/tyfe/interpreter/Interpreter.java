@@ -165,6 +165,7 @@ public final class Interpreter {
             case RuntimeValue.FloatValue(double l) -> l == ((RuntimeValue.FloatValue) right).value();
             case RuntimeValue.BoolValue(boolean l) -> l == ((RuntimeValue.BoolValue) right).value();
             case RuntimeValue.CharValue(byte l) -> l == ((RuntimeValue.CharValue) right).value();
+            case RuntimeValue.NothingValue _ -> true;
         };
     }
 
@@ -176,6 +177,9 @@ public final class Interpreter {
             case RuntimeValue.BoolValue _ ->
                 throw new IllegalStateException(
                         "unreachable: bool has no ordering, typechecker should have rejected this");
+            case RuntimeValue.NothingValue _ ->
+                throw new IllegalStateException(
+                        "unreachable: nothing has no ordering, typechecker should have rejected this");
         };
     }
 
@@ -187,6 +191,9 @@ public final class Interpreter {
             case RuntimeValue.BoolValue _ ->
                 throw new IllegalStateException(
                         "unreachable: bool has no ordering, typechecker should have rejected this");
+            case RuntimeValue.NothingValue _ ->
+                throw new IllegalStateException(
+                        "unreachable: nothing has no ordering, typechecker should have rejected this");
         };
     }
 

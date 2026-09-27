@@ -2,8 +2,8 @@ package io.github.uniquepython.tyfe.interpreter;
 
 import io.github.uniquepython.tyfe.literal.LiteralValue;
 
-public sealed interface RuntimeValue
-        permits RuntimeValue.IntValue, RuntimeValue.FloatValue, RuntimeValue.BoolValue, RuntimeValue.CharValue {
+public sealed interface RuntimeValue permits RuntimeValue.IntValue, RuntimeValue.FloatValue,
+        RuntimeValue.BoolValue, RuntimeValue.CharValue, RuntimeValue.NothingValue {
 
     record IntValue(int value) implements RuntimeValue {
         @Override
@@ -38,6 +38,13 @@ public sealed interface RuntimeValue
                 case '\0' -> "'\\0'";
                 default -> "'%c'".formatted((char) value);
             };
+        }
+    }
+
+    record NothingValue() implements RuntimeValue {
+        @Override
+        public String toString() {
+            return "nothing";
         }
     }
 
