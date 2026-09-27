@@ -10,6 +10,7 @@ public abstract sealed class TypeCheckError extends TyfeError
         permits TypeCheckError.DuplicateDeclaration, TypeCheckError.UndeclaredIdentifier,
         TypeCheckError.InvalidOperandType, TypeCheckError.OperandTypeMismatch, TypeCheckError.UnreachableCode,
         TypeCheckError.StopOrSkipOutsideLoop, TypeCheckError.DeclarationTypeMismatch,
+        TypeCheckError.AssignmentTypeMismatch,
         TypeCheckError.ReassignmentOfConst {
 
     protected TypeCheckError(String message, Span span) {
@@ -149,6 +150,27 @@ public abstract sealed class TypeCheckError extends TyfeError
 
         public Type initializerType() {
             return initializerType;
+        }
+
+    }
+
+    public static final class AssignmentTypeMismatch extends TypeCheckError {
+
+        private final Type targetType;
+        private final Type valueType;
+
+        public AssignmentTypeMismatch(Type targetType, Type valueType, Span span) {
+            super("Cannot assign value of type %s to variable of type %s".formatted(valueType, targetType), span);
+            this.targetType = targetType;
+            this.valueType = valueType;
+        }
+
+        public Type targetType() {
+            return targetType;
+        }
+
+        public Type valueType() {
+            return valueType;
         }
 
     }
