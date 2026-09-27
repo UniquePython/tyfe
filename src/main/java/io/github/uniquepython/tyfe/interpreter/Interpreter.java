@@ -1,6 +1,7 @@
 package io.github.uniquepython.tyfe.interpreter;
 
 import io.github.uniquepython.tyfe.ast.Expr;
+import io.github.uniquepython.tyfe.ast.Stmt;
 import io.github.uniquepython.tyfe.common.Span;
 import io.github.uniquepython.tyfe.ast.BinaryOperator;
 import io.github.uniquepython.tyfe.ast.UnaryOperator;
@@ -183,6 +184,15 @@ public final class Interpreter {
             case RuntimeValue.BoolValue _ ->
                 throw new IllegalStateException(
                         "unreachable: bool has no ordering, typechecker should have rejected this");
+        };
+    }
+
+    public static ExecResult execute(Stmt stmt, Environment env) {
+        return switch (stmt) {
+            case Stmt.Declaration declaration -> executeDeclaration(declaration, env);
+            case Stmt.Assignment assignment -> executeAssignment(assignment, env);
+            case Stmt.ExpressionStatement expressionStatement -> executeExpressionStatement(expressionStatement, env);
+            default -> throw new UnsupportedOperationException("not yet implemented: " + stmt);
         };
     }
 
