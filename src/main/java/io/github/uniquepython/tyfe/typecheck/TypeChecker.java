@@ -152,4 +152,8 @@ public final class TypeChecker {
         return Type.Nothing.NOTHING;
     }
 
+    private static Type checkProduce(Stmt.Produce stmt, TypeCheckContext ctx) {
+        return checkExpr(stmt.value(), ctx);
+    }
+
 }
