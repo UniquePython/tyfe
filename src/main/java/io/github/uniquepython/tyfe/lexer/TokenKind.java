@@ -17,9 +17,7 @@ public sealed interface TokenKind
         F64,
         BOOL,
         CHAR,
-        NOTHING,
-        YES,
-        NO;
+        NOTHING;
 
         @Override
         public String toString() {
@@ -30,7 +28,8 @@ public sealed interface TokenKind
     enum Literal implements TokenKind {
         INTEGER,
         FLOAT,
-        CHAR;
+        CHAR,
+        BOOL;
 
         @Override
         public String toString() {
