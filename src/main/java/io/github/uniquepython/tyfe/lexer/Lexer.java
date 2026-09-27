@@ -35,7 +35,7 @@ public class Lexer {
             Map.entry("}", TokenKind.Punctuation.RBRACE),
             Map.entry(";", TokenKind.Punctuation.SEMI_COLON));
 
-    private static final Map<String, TokenKind.Keyword> keywords = Map.ofEntries(
+    private static final Map<String, TokenKind> keywords = Map.ofEntries(
             Map.entry("mut", TokenKind.Keyword.MUT),
             Map.entry("const", TokenKind.Keyword.CONST),
             Map.entry("if", TokenKind.Keyword.IF),
@@ -49,8 +49,8 @@ public class Lexer {
             Map.entry("bool", TokenKind.Keyword.BOOL),
             Map.entry("char", TokenKind.Keyword.CHAR),
             Map.entry("nothing", TokenKind.Keyword.NOTHING),
-            Map.entry("yes", TokenKind.Keyword.YES),
-            Map.entry("no", TokenKind.Keyword.NO));
+            Map.entry("yes", TokenKind.Literal.BOOL),
+            Map.entry("no", TokenKind.Literal.BOOL));
 
     private final String source;
     private int position;
