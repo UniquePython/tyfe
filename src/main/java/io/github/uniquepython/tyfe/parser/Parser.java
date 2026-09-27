@@ -277,4 +277,23 @@ public final class Parser {
         return new Stmt.Assignment(target, value, nameToken.span().merge(end));
     }
 
+    private Stmt.Produce parseProduce() {
+        Span start = expect(TokenKind.Keyword.PRODUCE).span();
+        Expr value = parseExpression();
+        Span end = expect(TokenKind.Punctuation.SEMI_COLON).span();
+        return new Stmt.Produce(value, start.merge(end));
+    }
+
+    private Stmt.Stop parseStop() {
+        Span start = expect(TokenKind.Keyword.STOP).span();
+        Span end = expect(TokenKind.Punctuation.SEMI_COLON).span();
+        return new Stmt.Stop(start.merge(end));
+    }
+
+    private Stmt.Skip parseSkip() {
+        Span start = expect(TokenKind.Keyword.SKIP).span();
+        Span end = expect(TokenKind.Punctuation.SEMI_COLON).span();
+        return new Stmt.Skip(start.merge(end));
+    }
+
 }
