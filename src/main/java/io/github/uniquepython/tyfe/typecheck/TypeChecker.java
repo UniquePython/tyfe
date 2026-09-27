@@ -170,4 +170,16 @@ public final class TypeChecker {
         return Type.Nothing.NOTHING;
     }
 
+    private static Type checkDeclaration(Stmt.Declaration stmt, TypeCheckContext ctx) {
+        Type initializerType = checkExpr(stmt.initializer(), ctx);
+
+        if (initializerType != stmt.type()) {
+            throw new TypeCheckError.DeclarationTypeMismatch(stmt.type(), initializerType, stmt.span());
+        }
+
+        ctx.env().declare(stmt.name(), stmt.type(), stmt.mutability(), stmt.span());
+
+        return Type.Nothing.NOTHING;
+    }
+
 }
