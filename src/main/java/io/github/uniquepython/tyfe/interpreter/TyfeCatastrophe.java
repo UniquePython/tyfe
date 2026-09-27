@@ -4,7 +4,7 @@ import io.github.uniquepython.tyfe.common.Span;
 import io.github.uniquepython.tyfe.common.TyfeError;
 
 public abstract sealed class TyfeCatastrophe extends TyfeError
-        permits TyfeCatastrophe.DivisionByZero, TyfeCatastrophe.IntegerOverflow {
+        permits TyfeCatastrophe.DivisionByZero, TyfeCatastrophe.IntegerOverflow, TyfeCatastrophe.NegativeExponent {
 
     protected TyfeCatastrophe(String message, Span span) {
         super(message, span);
@@ -26,6 +26,12 @@ public abstract sealed class TyfeCatastrophe extends TyfeError
 
         public String operation() {
             return operation;
+        }
+    }
+
+    public static final class NegativeExponent extends TyfeCatastrophe {
+        public NegativeExponent(Span span) {
+            super("Cannot raise an integer to a negative power", span);
         }
     }
 
