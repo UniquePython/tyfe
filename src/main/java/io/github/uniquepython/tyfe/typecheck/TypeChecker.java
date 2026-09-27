@@ -136,4 +136,15 @@ public final class TypeChecker {
         return statement instanceof Stmt.Produce || statement instanceof Stmt.Stop || statement instanceof Stmt.Skip;
     }
 
+    public static Type checkStmt(Stmt stmt, TypeCheckContext ctx) {
+        return switch (stmt) {
+            case Stmt.Declaration declaration -> checkDeclaration(declaration, ctx);
+            case Stmt.Assignment assignment -> checkAssignment(assignment, ctx);
+            case Stmt.ExpressionStatement expressionStatement -> checkExpressionStatement(expressionStatement, ctx);
+            case Stmt.Produce produce -> checkProduce(produce, ctx);
+            case Stmt.Stop stop -> checkStop(stop, ctx);
+            case Stmt.Skip skip -> checkSkip(skip, ctx);
+        };
+    }
+
 }
