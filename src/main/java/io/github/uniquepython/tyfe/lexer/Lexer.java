@@ -44,6 +44,7 @@ public class Lexer {
             Map.entry("stop", TokenKind.Keyword.STOP),
             Map.entry("skip", TokenKind.Keyword.SKIP),
             Map.entry("produce", TokenKind.Keyword.PRODUCE),
+            Map.entry("yield", TokenKind.Keyword.YIELD),
             Map.entry("i32", TokenKind.Keyword.I32),
             Map.entry("f64", TokenKind.Keyword.F64),
             Map.entry("bool", TokenKind.Keyword.BOOL),
