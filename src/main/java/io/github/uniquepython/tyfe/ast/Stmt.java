@@ -5,7 +5,8 @@ import java.util.Objects;
 import io.github.uniquepython.tyfe.common.Span;
 
 public sealed interface Stmt
-        permits Stmt.Declaration, Stmt.Assignment, Stmt.ExpressionStatement, Stmt.Produce, Stmt.Stop, Stmt.Skip {
+        permits Stmt.Declaration, Stmt.Assignment, Stmt.ExpressionStatement, Stmt.Produce, Stmt.Stop, Stmt.Skip,
+        Stmt.Yield {
 
     Span span();
 
@@ -49,6 +50,13 @@ public sealed interface Stmt
 
     record Skip(Span span) implements Stmt {
         public Skip {
+            Objects.requireNonNull(span, "span");
+        }
+    }
+
+    record Yield(Expr value, Span span) implements Stmt {
+        public Yield {
+            Objects.requireNonNull(value, "value");
             Objects.requireNonNull(span, "span");
         }
     }
