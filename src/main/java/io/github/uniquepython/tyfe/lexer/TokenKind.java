@@ -13,6 +13,7 @@ public sealed interface TokenKind
         STOP,
         SKIP,
         PRODUCE,
+        YIELD,
         I32,
         F64,
         BOOL,
