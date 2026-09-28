@@ -235,6 +235,9 @@ public final class Parser {
         if (kind == TokenKind.Keyword.PRODUCE)
             return parseProduce();
 
+        if (kind == TokenKind.Keyword.YIELD)
+            return parseYield();
+
         if (kind == TokenKind.Keyword.STOP)
             return parseStop();
 
@@ -291,6 +294,13 @@ public final class Parser {
         Expr value = parseExpression();
         Span end = expect(TokenKind.Punctuation.SEMI_COLON).span();
         return new Stmt.Produce(value, start.merge(end));
+    }
+
+    private Stmt.Yield parseYield() {
+        Span start = expect(TokenKind.Keyword.YIELD).span();
+        Expr value = parseExpression();
+        Span end = expect(TokenKind.Punctuation.SEMI_COLON).span();
+        return new Stmt.Yield(value, start.merge(end));
     }
 
     private Stmt.Stop parseStop() {
