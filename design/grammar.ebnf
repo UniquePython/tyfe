@@ -27,7 +27,7 @@ LineComment ::= '//' (* any characters up to, not including, newline *) ;
    (non-top-level) 'DeclarationStatement'/'FunctionDefinition'/
    'DataDefinition' forms stay visibility-free, exactly as already
    designed. Everything else (expression-statements, assignment,
-   produce/stop/skip, 'use' itself) is unaffected by top-level-vs-
+   produce/stop/skip/yield, 'use' itself) is unaffected by top-level-vs-
    local position and appears in both lists unchanged. *)
 
 Program            ::= TopLevelStatement* ;
@@ -40,7 +40,8 @@ TopLevelStatement  ::= UseStatement
                       | AssignmentStatement
                       | ProduceStatement
                       | StopStatement
-                      | SkipStatement ;
+                      | SkipStatement
+                      | YieldStatement ;
 
 (* A Statement is the "thing you write one of, in sequence" INSIDE a
    block or function body. Expressions can appear in statement
@@ -54,6 +55,7 @@ Statement   ::= ExpressionStatement
               | ProduceStatement
               | StopStatement
               | SkipStatement
+              | YieldStatement
               | FunctionDefinition
               | DataDefinition ;
 
@@ -120,6 +122,15 @@ ExpressionStatement ::= Expression ';' ;
 
 StopStatement   ::= 'stop' ';' ;
 SkipStatement   ::= 'skip' ';' ;
+YieldStatement  ::= 'yield' Expression ';' ;
+(* 'yield' is 'stop's value-carrying twin: it exits the innermost
+   enclosing loop immediately, same as 'stop', but the loop's value
+   becomes the given Expression instead of 'nothing'. See "Loops"
+   below for the full exit-agreement rule this introduces, and
+   semantics.md for the complete semantics. Unlike 'produce' (which
+   is scoped to its innermost BLOCK), 'yield' -- like 'stop'/'skip'
+   -- is scoped to its innermost LOOP, passing transparently through
+   any intervening blocks/if-unless branches to reach it. *)
 
 (* ---- Assignment ---------------------------------------------------
    Reassigns an existing 'mut' variable, OR mutates an element of an
@@ -619,10 +630,23 @@ PrimaryExpr     ::= Literal
                    (* more forms TBD *)
 
 (* ---- Loops -----------------------------------------------------
-   Four forms, all usable in expression position (their value comes
-   from 'produce' inside the body, exactly like blocks; if the loop
-   ends without ever executing 'produce', its value is 'nothing' --
-   see semantics.md).
+   Four forms, all usable in expression position. A loop's value
+   comes from 'yield' inside the body -- NOT 'produce', which only
+   ever ends its own innermost block and never escapes to the loop
+   (see the 'stop'/'skip'/'yield' paragraph below, and semantics.md,
+   for the full distinction). If the loop ends without ever executing
+   a reachable 'yield', its value is 'nothing'.
+
+   If any 'yield' is reachable in the loop body, EVERY way the body
+   can end must agree on producing that same type: every reachable
+   'yield' must produce the same type; a reachable bare 'stop;'
+   becomes a compile-time error (it has no value, so cannot agree
+   with a type-producing 'yield'); and the loop's ordinary completion
+   path (condition goes false for while/until, all repetitions
+   finish for loop, the array is exhausted for for) must be provably
+   unreachable, since silently falling out of the loop that way would
+   yield 'nothing', not the required type. See semantics.md, "Loop
+   typing: yield and exhaustiveness", for the full rule.
 
    'until (cond) {...}' is exactly 'while (!cond) {...}' -- runs
    while the condition is FALSE, mirroring how 'unless' relates to
@@ -651,13 +675,16 @@ PrimaryExpr     ::= Literal
    is an element). See semantics.md.
 
    'stop;' exits the innermost enclosing loop immediately, always
-   with value 'nothing' (use 'produce' instead if you need to exit
-   with a value). 'skip;' jumps to the next iteration of the
-   innermost enclosing loop. Neither takes an argument. There is no
-   labeled-loop support -- 'stop'/'skip' always affect only the
-   innermost enclosing loop, by permanent design decision, not a
-   placeholder to be revisited. This applies to 'for' identically to
-   the other three loop forms. *)
+   with value 'nothing'. 'skip;' jumps to the next iteration of the
+   innermost enclosing loop, taking no argument. 'yield Expression;'
+   exits the innermost enclosing loop immediately like 'stop', but
+   carries a value -- use it instead of 'stop' when the loop needs to
+   exit early with a value. All three -- 'stop', 'skip', 'yield' --
+   affect only the innermost enclosing loop, passing transparently
+   through any number of intervening blocks/if-unless branches to
+   reach it. There is no labeled-loop support -- by permanent design
+   decision, not a placeholder to be revisited. This applies to 'for'
+   identically to the other three loop forms. *)
 
 LoopExpr        ::= WhileExpr | UntilExpr | CountedLoopExpr | ForExpr ;
 WhileExpr       ::= 'while' '(' Expression ')' Block ;
