@@ -558,14 +558,28 @@ may or may not actually produce a meaningful value, unlike `if`/
 
 `stop;` exits the innermost enclosing loop immediately. It is
 **strictly value-less** -- it always yields `nothing` as the loop's
-value; there is no `stop expr;` form. Use `produce` instead if the
-loop needs to exit early with a value.
+value; there is no `stop expr;` form.
 
 `skip;` jumps to the next iteration of the innermost enclosing loop
 (re-checks the condition for `while`/`until`; moves to the next
 repetition for `loop`). Takes no argument.
 
-Both `stop` and `skip` affect only the **innermost** enclosing loop.
+`yield expr;` exits the innermost enclosing loop immediately, same as
+`stop;`, but carries a value: the loop's value becomes `expr`. Use
+`yield` instead of `stop` when the loop needs to exit early with a
+value.
+
+`stop`, `skip`, and `yield` all affect only the **innermost**
+enclosing loop, and all three pass transparently through any number
+of intervening blocks and `if`/`unless` branches to reach it -- e.g.
+`while (cond) { if (c) { yield 1#i32; } else { skip; }; }` is legal:
+the `yield`/`skip` target the `while`, not the `if`'s block, even
+though `produce` (see Blocks and `produce`, below) would instead end
+just the `if` branch's block. This is the one place `produce` and
+`yield` differ in reach: `produce` is scoped to its innermost
+*block*; `yield` (like `stop`/`skip`) is scoped to its innermost
+*loop*, regardless of how many blocks lie in between.
+
 There is no labeled-loop support (e.g. `stop outer;`), **by
 deliberate permanent design decision, not a placeholder**. If code
 needs to exit or continue an *outer* loop from inside a nested one,
@@ -573,6 +587,40 @@ the workaround is to restructure -- e.g. extract the inner loop into
 its own function and use its return value as a signal the outer loop
 checks, or use a `mut bool` flag set inside the inner loop and
 checked in the outer loop's condition.
+
+### Loop typing: `yield` and exhaustiveness
+
+A loop with no reachable `yield` in its body types as `nothing`,
+same as a `produce`-less block -- this is the common case, and
+matches how a loop used in expression position could always
+previously only ever yield `nothing` (see above).
+
+A loop with at least one reachable `yield expr` of type `T` types as
+`T` instead. Because the language is statically typed, a loop can
+only have **one** static type, so once any `yield` is reachable in
+the body, **every** way the loop can end must agree on producing a
+`T`:
+
+- every reachable `yield` in the body must produce a `T`, exactly
+  like `produce`'s same-type-on-every-reachable-branch rule for
+  blocks;
+- a reachable bare `stop;` is a **compile-time error** in a loop that
+  also has a reachable `yield` -- a bare `stop;` has no value, so it
+  cannot agree with a `T`-producing `yield` on the loop's type;
+- the loop's ordinary exhaustion path (condition becomes false for
+  `while`/`until`, all `n` repetitions complete for `loop`, the array
+  is exhausted for `for`) must be **unreachable** -- the checker must
+  be able to prove the loop cannot end this way. In practice this
+  means a `T`-yielding loop needs a body shaped so every exit is
+  explicit (e.g. `while (true) { ... }` with all paths ending in
+  `yield`), since an ordinary exhaustion exit would silently produce
+  `nothing`, which cannot agree with `T`.
+
+This mirrors the block/`produce` reachability rule in spirit --
+"every reachable way of ending this construct must agree on a single
+static type" -- applied to loops and their three ways of ending
+(`yield`, bare `stop`, and ordinary exhaustion) instead of to blocks
+and `produce`.
 
 ## Blocks and `produce`
 
