@@ -201,7 +201,7 @@ public final class Interpreter {
         ExecResult result = executeBlock(block, env);
 
         return switch (result) {
-            case ExecResult.Produce produce -> produce.value();
+            case ExecResult.Value produce -> produce.value();
             case ExecResult.Normal _ ->
                 throw new IllegalStateException(
                         "unreachable: block used as expression never produced a value, typechecker should have caught this");
@@ -251,7 +251,7 @@ public final class Interpreter {
                 case ExecResult.Stop _ -> {
                     return new RuntimeValue.NothingValue();
                 }
-                case ExecResult.Produce produce -> {
+                case ExecResult.Value produce -> {
                     return produce.value();
                 }
             }
@@ -303,7 +303,7 @@ public final class Interpreter {
 
     private static ExecResult executeProduce(Stmt.Produce stmt, Environment env) {
         RuntimeValue value = evaluate(stmt.value(), env);
-        return new ExecResult.Produce(value);
+        return new ExecResult.Value(value);
     }
 
     private static ExecResult executeStop(Stmt.Stop stmt, Environment env) {
