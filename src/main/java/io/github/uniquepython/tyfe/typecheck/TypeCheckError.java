@@ -14,7 +14,7 @@ public abstract sealed class TypeCheckError extends TyfeError
         TypeCheckError.AssignmentTypeMismatch,
         TypeCheckError.ReassignmentOfConst, TypeCheckError.NonBooleanCondition, TypeCheckError.BranchTypeMismatch,
         TypeCheckError.YieldOutsideLoop, TypeCheckError.YieldTypeMismatch, TypeCheckError.LoopMayNotYield,
-        TypeCheckError.BareStopWithYield {
+        TypeCheckError.BareStopWithYield, TypeCheckError.ProduceDirectlyInLoopBody {
 
     protected TypeCheckError(String message, Span span) {
         super(message, span);
@@ -297,6 +297,16 @@ public abstract sealed class TypeCheckError extends TyfeError
         public BareStopWithYield(Span span) {
             super("'stop;' cannot be used in a loop that also contains a 'yield': "
                     + "a bare 'stop' has no value, but this loop must produce one", span);
+        }
+
+    }
+
+    public static final class ProduceDirectlyInLoopBody extends TypeCheckError {
+
+        public ProduceDirectlyInLoopBody(Span span) {
+            super("'produce' cannot be used directly in a loop's body: it would only end the loop body's own "
+                    + "block, and that value is never observable, since a loop's value comes from 'yield', not "
+                    + "'produce'. Use 'yield' instead if the loop should exit with this value here", span);
         }
 
     }

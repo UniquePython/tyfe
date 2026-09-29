@@ -173,6 +173,8 @@ public final class TypeChecker {
         TypeCheckContext bodyCtx = ctx.withInsideLoop();
         checkBlock(whileExpr.body(), bodyCtx);
 
+        checkNoDirectProduceInLoopBody(whileExpr.body());
+
         YieldReachability reachability = analyzeYieldReachability(whileExpr.body(), bodyCtx);
 
         if (reachability.reachableYieldSpans().isEmpty()) {
@@ -194,6 +196,31 @@ public final class TypeChecker {
     }
 
     private record YieldReachability(boolean allPathsYield, Type yieldType, List<Span> reachableYieldSpans) {
+    }
+
+    /**
+     * A bare 'produce expr;' sitting directly as the loop body's own trailing statement (not
+     * nested inside an if) only ends the loop body's own block, whose value is never observed by
+     * anything -- checkWhile ignores checkBlock's returned type for the loop's own typing, and the
+     * interpreter has no way to make use of that value at runtime either. This is always a mistake:
+     * the author meant 'yield' if they wanted the loop to exit with this value here. A 'produce'
+     * nested inside an if within the loop body is unaffected -- it ends the if's own inner block,
+     * which is then correctly discarded by the ordinary statement-position if rule, exactly like
+     * any other statement-position if; this check only looks at the loop body's own trailing
+     * statement, not anything nested inside it.
+     */
+    private static void checkNoDirectProduceInLoopBody(Expr.Block body) {
+        List<Stmt> statements = body.statements();
+
+        if (statements.isEmpty()) {
+            return;
+        }
+
+        Stmt last = statements.getLast();
+
+        if (last instanceof Stmt.Produce produce) {
+            throw new TypeCheckError.ProduceDirectlyInLoopBody(produce.span());
+        }
     }
 
     private static YieldReachability analyzeYieldReachability(Expr.Block block, TypeCheckContext ctx) {
