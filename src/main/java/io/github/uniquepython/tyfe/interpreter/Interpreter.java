@@ -12,15 +12,34 @@ public final class Interpreter {
     private Interpreter() {
     }
 
-    public static RuntimeValue evaluate(Expr expr, Environment env) {
+    public static ExecResult evaluate(Expr expr, Environment env) {
         return switch (expr) {
-            case Expr.Literal literal -> RuntimeValue.fromLiteral(literal.value());
-            case Expr.Identifier identifier -> evaluateIdentifier(identifier, env);
-            case Expr.Unary unary -> evaluateUnary(unary, env);
-            case Expr.Binary binary -> evaluateBinary(binary, env);
+            case Expr.Literal literal -> new ExecResult.Value(RuntimeValue.fromLiteral(literal.value()));
+            case Expr.Identifier identifier -> new ExecResult.Value(evaluateIdentifier(identifier, env));
+            case Expr.Unary unary -> new ExecResult.Value(evaluateUnary(unary, env));
+            case Expr.Binary binary -> new ExecResult.Value(evaluateBinary(binary, env));
             case Expr.Block block -> evaluateBlock(block, env);
             case Expr.If ifExpr -> evaluateIf(ifExpr, env);
             case Expr.While whileExpr -> evaluateWhile(whileExpr, env);
+        };
+    }
+
+    /**
+     * Unwraps an ExecResult in an operand position, where the typechecker guarantees evaluation
+     * can only ever complete with an ordinary value -- arithmetic/logical operands, if/while
+     * conditions, and the value expressions of declarations, assignments, produce and yield.
+     * A control-flow signal escaping to one of these positions would mean the typechecker missed
+     * a stop/skip/yield in a non-statement position, since those are Stmt variants, not Expr ones.
+     */
+    private static RuntimeValue evaluateAsValue(Expr expr, Environment env) {
+        ExecResult result = evaluate(expr, env);
+
+        return switch (result) {
+            case ExecResult.Value value -> value.value();
+            case ExecResult.Normal _, ExecResult.Stop _, ExecResult.Skip _, ExecResult.Yield _ ->
+                throw new IllegalStateException(
+                        "unreachable: control-flow signal escaped an operand position, typechecker should have caught this: "
+                                + result);
         };
     }
 
@@ -30,7 +49,7 @@ public final class Interpreter {
     }
 
     private static RuntimeValue evaluateUnary(Expr.Unary unary, Environment env) {
-        RuntimeValue operand = evaluate(unary.operand(), env);
+        RuntimeValue operand = evaluateAsValue(unary.operand(), env);
 
         return switch (unary.operator()) {
             case UnaryOperator.Arithmetic.Checked.NEG -> evaluateNeg(operand, unary.span());
@@ -61,8 +80,8 @@ public final class Interpreter {
             return evaluateLogical(logical, binary.left(), binary.right(), env);
         }
 
-        RuntimeValue left = evaluate(binary.left(), env);
-        RuntimeValue right = evaluate(binary.right(), env);
+        RuntimeValue left = evaluateAsValue(binary.left(), env);
+        RuntimeValue right = evaluateAsValue(binary.right(), env);
 
         return switch (binary.operator()) {
             case BinaryOperator.Arithmetic arithmetic -> evaluateArithmetic(arithmetic, left, right, binary.span());
@@ -73,11 +92,11 @@ public final class Interpreter {
 
     private static RuntimeValue evaluateLogical(BinaryOperator.Logical operator, Expr leftExpr, Expr rightExpr,
             Environment env) {
-        boolean left = ((RuntimeValue.BoolValue) evaluate(leftExpr, env)).value();
+        boolean left = ((RuntimeValue.BoolValue) evaluateAsValue(leftExpr, env)).value();
 
         return switch (operator) {
-            case AND -> left ? evaluate(rightExpr, env) : new RuntimeValue.BoolValue(false);
-            case OR -> left ? new RuntimeValue.BoolValue(true) : evaluate(rightExpr, env);
+            case AND -> left ? evaluateAsValue(rightExpr, env) : new RuntimeValue.BoolValue(false);
+            case OR -> left ? new RuntimeValue.BoolValue(true) : evaluateAsValue(rightExpr, env);
         };
     }
 
@@ -197,97 +216,7 @@ public final class Interpreter {
         };
     }
 
-    private static RuntimeValue evaluateBlock(Expr.Block block, Environment env) {
-        ExecResult result = executeBlock(block, env);
-
-        return switch (result) {
-            case ExecResult.Value produce -> produce.value();
-            case ExecResult.Normal _ ->
-                throw new IllegalStateException(
-                        "unreachable: block used as expression never produced a value, typechecker should have caught this");
-            case ExecResult.Stop _ ->
-                throw new IllegalStateException(
-                        "unreachable: stop escaped a block used as expression, typechecker should have caught this");
-            case ExecResult.Skip _ ->
-                throw new IllegalStateException(
-                        "unreachable: skip escaped a block used as expression, typechecker should have caught this");
-        };
-    }
-
-    private static RuntimeValue evaluateIf(Expr.If ifExpr, Environment env) {
-        RuntimeValue condition = evaluate(ifExpr.condition(), env);
-        boolean conditionValue = ((RuntimeValue.BoolValue) condition).value();
-
-        if (conditionValue) {
-            return evaluateBlock(ifExpr.thenBranch(), env);
-        } else {
-            return evaluateElseBranch(ifExpr.elseBranch(), env);
-        }
-    }
-
-    private static RuntimeValue evaluateElseBranch(Expr.ElseBranch elseBranch, Environment env) {
-        return switch (elseBranch) {
-            case Expr.Block block -> evaluateBlock(block, env);
-            case Expr.If ifExpr -> evaluateIf(ifExpr, env);
-        };
-    }
-
-    private static RuntimeValue evaluateWhile(Expr.While whileExpr, Environment env) {
-        while (true) {
-            RuntimeValue condition = evaluate(whileExpr.condition(), env);
-            boolean conditionValue = ((RuntimeValue.BoolValue) condition).value();
-
-            if (!conditionValue) {
-                return new RuntimeValue.NothingValue();
-            }
-
-            ExecResult bodyResult = executeBlock(whileExpr.body(), env);
-
-            switch (bodyResult) {
-                case ExecResult.Normal _ -> {
-                }
-                case ExecResult.Skip _ -> {
-                }
-                case ExecResult.Stop _ -> {
-                    return new RuntimeValue.NothingValue();
-                }
-                case ExecResult.Value produce -> {
-                    return produce.value();
-                }
-            }
-        }
-    }
-
-    public static ExecResult execute(Stmt stmt, Environment env) {
-        return switch (stmt) {
-            case Stmt.Declaration declaration -> executeDeclaration(declaration, env);
-            case Stmt.Assignment assignment -> executeAssignment(assignment, env);
-            case Stmt.ExpressionStatement expressionStatement -> executeExpressionStatement(expressionStatement, env);
-            case Stmt.Produce produce -> executeProduce(produce, env);
-            case Stmt.Stop stop -> executeStop(stop, env);
-            case Stmt.Skip skip -> executeSkip(skip, env);
-        };
-    }
-
-    private static ExecResult executeDeclaration(Stmt.Declaration stmt, Environment env) {
-        RuntimeValue value = evaluate(stmt.initializer(), env);
-        env.declare(stmt.name(), value);
-        return new ExecResult.Normal();
-    }
-
-    private static ExecResult executeAssignment(Stmt.Assignment stmt, Environment env) {
-        String name = ((AssignmentTarget.Identifier) stmt.target()).name();
-        RuntimeValue value = evaluate(stmt.value(), env);
-        env.assign(name, value);
-        return new ExecResult.Normal();
-    }
-
-    private static ExecResult executeExpressionStatement(Stmt.ExpressionStatement stmt, Environment env) {
-        evaluate(stmt.expression(), env);
-        return new ExecResult.Normal();
-    }
-
-    private static ExecResult executeBlock(Expr.Block block, Environment env) {
+    private static ExecResult evaluateBlock(Expr.Block block, Environment env) {
         Environment blockEnv = env.child();
 
         for (Stmt stmt : block.statements()) {
@@ -301,8 +230,88 @@ public final class Interpreter {
         return new ExecResult.Normal();
     }
 
+    private static ExecResult evaluateIf(Expr.If ifExpr, Environment env) {
+        boolean conditionValue = ((RuntimeValue.BoolValue) evaluateAsValue(ifExpr.condition(), env)).value();
+
+        if (conditionValue) {
+            return evaluateBlock(ifExpr.thenBranch(), env);
+        } else {
+            return evaluateElseBranch(ifExpr.elseBranch(), env);
+        }
+    }
+
+    private static ExecResult evaluateElseBranch(Expr.ElseBranch elseBranch, Environment env) {
+        return switch (elseBranch) {
+            case Expr.Block block -> evaluateBlock(block, env);
+            case Expr.If ifExpr -> evaluateIf(ifExpr, env);
+        };
+    }
+
+    private static ExecResult evaluateWhile(Expr.While whileExpr, Environment env) {
+        while (true) {
+            boolean conditionValue = ((RuntimeValue.BoolValue) evaluateAsValue(whileExpr.condition(), env)).value();
+
+            if (!conditionValue) {
+                return new ExecResult.Value(new RuntimeValue.NothingValue());
+            }
+
+            ExecResult bodyResult = evaluateBlock(whileExpr.body(), env);
+
+            switch (bodyResult) {
+                case ExecResult.Normal _ -> {
+                }
+                case ExecResult.Skip _ -> {
+                }
+                case ExecResult.Value _ ->
+                    throw new IllegalStateException(
+                            "unreachable: loop body block produced a value via trailing produce, but a loop body's value is never observable, typechecker should have caught this: "
+                                    + bodyResult);
+                case ExecResult.Stop _ -> {
+                    return new ExecResult.Value(new RuntimeValue.NothingValue());
+                }
+                case ExecResult.Yield yieldResult -> {
+                    return new ExecResult.Value(yieldResult.value());
+                }
+            }
+        }
+    }
+
+    public static ExecResult execute(Stmt stmt, Environment env) {
+        return switch (stmt) {
+            case Stmt.Declaration declaration -> executeDeclaration(declaration, env);
+            case Stmt.Assignment assignment -> executeAssignment(assignment, env);
+            case Stmt.ExpressionStatement expressionStatement -> executeExpressionStatement(expressionStatement, env);
+            case Stmt.Produce produce -> executeProduce(produce, env);
+            case Stmt.Stop stop -> executeStop(stop, env);
+            case Stmt.Skip skip -> executeSkip(skip, env);
+            case Stmt.Yield yieldStmt -> executeYield(yieldStmt, env);
+        };
+    }
+
+    private static ExecResult executeDeclaration(Stmt.Declaration stmt, Environment env) {
+        RuntimeValue value = evaluateAsValue(stmt.initializer(), env);
+        env.declare(stmt.name(), value);
+        return new ExecResult.Normal();
+    }
+
+    private static ExecResult executeAssignment(Stmt.Assignment stmt, Environment env) {
+        String name = ((AssignmentTarget.Identifier) stmt.target()).name();
+        RuntimeValue value = evaluateAsValue(stmt.value(), env);
+        env.assign(name, value);
+        return new ExecResult.Normal();
+    }
+
+    private static ExecResult executeExpressionStatement(Stmt.ExpressionStatement stmt, Environment env) {
+        ExecResult result = evaluate(stmt.expression(), env);
+
+        return switch (result) {
+            case ExecResult.Value _, ExecResult.Normal _ -> new ExecResult.Normal();
+            case ExecResult.Stop _, ExecResult.Skip _, ExecResult.Yield _ -> result;
+        };
+    }
+
     private static ExecResult executeProduce(Stmt.Produce stmt, Environment env) {
-        RuntimeValue value = evaluate(stmt.value(), env);
+        RuntimeValue value = evaluateAsValue(stmt.value(), env);
         return new ExecResult.Value(value);
     }
 
@@ -312,6 +321,11 @@ public final class Interpreter {
 
     private static ExecResult executeSkip(Stmt.Skip stmt, Environment env) {
         return new ExecResult.Skip();
+    }
+
+    private static ExecResult executeYield(Stmt.Yield stmt, Environment env) {
+        RuntimeValue value = evaluateAsValue(stmt.value(), env);
+        return new ExecResult.Yield(value);
     }
 
 }
