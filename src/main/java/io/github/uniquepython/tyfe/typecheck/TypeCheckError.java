@@ -12,7 +12,9 @@ public abstract sealed class TypeCheckError extends TyfeError
         TypeCheckError.StopOrSkipOutsideLoop, TypeCheckError.ProduceOutsideBlock,
         TypeCheckError.DeclarationTypeMismatch,
         TypeCheckError.AssignmentTypeMismatch,
-        TypeCheckError.ReassignmentOfConst, TypeCheckError.NonBooleanCondition, TypeCheckError.BranchTypeMismatch {
+        TypeCheckError.ReassignmentOfConst, TypeCheckError.NonBooleanCondition, TypeCheckError.BranchTypeMismatch,
+        TypeCheckError.YieldOutsideLoop, TypeCheckError.YieldTypeMismatch, TypeCheckError.LoopMayNotYield,
+        TypeCheckError.BareStopWithYield {
 
     protected TypeCheckError(String message, Span span) {
         super(message, span);
@@ -232,6 +234,69 @@ public abstract sealed class TypeCheckError extends TyfeError
 
         public Type elseType() {
             return elseType;
+        }
+
+    }
+
+    public static final class YieldOutsideLoop extends TypeCheckError {
+
+        public YieldOutsideLoop(Span span) {
+            super("'yield' used outside of a loop", span);
+        }
+
+    }
+
+    public static final class YieldTypeMismatch extends TypeCheckError {
+
+        private final Type firstType;
+        private final Span firstSpan;
+        private final Type mismatchedType;
+
+        public YieldTypeMismatch(Type firstType, Span firstSpan, Type mismatchedType, Span span) {
+            super("All 'yield's in a loop must produce the same type: found %s here, but %s was yielded earlier"
+                    .formatted(mismatchedType, firstType), span);
+            this.firstType = firstType;
+            this.firstSpan = firstSpan;
+            this.mismatchedType = mismatchedType;
+        }
+
+        public Type firstType() {
+            return firstType;
+        }
+
+        public Span firstSpan() {
+            return firstSpan;
+        }
+
+        public Type mismatchedType() {
+            return mismatchedType;
+        }
+
+    }
+
+    public static final class LoopMayNotYield extends TypeCheckError {
+
+        private final Type yieldType;
+
+        public LoopMayNotYield(Type yieldType, Span span) {
+            super(("This loop yields %s on some paths, but may also end without yielding "
+                    + "(the loop's condition may become false, or all repetitions may complete, "
+                    + "without a 'yield' being reached); every path out of a yielding loop must yield")
+                    .formatted(yieldType), span);
+            this.yieldType = yieldType;
+        }
+
+        public Type yieldType() {
+            return yieldType;
+        }
+
+    }
+
+    public static final class BareStopWithYield extends TypeCheckError {
+
+        public BareStopWithYield(Span span) {
+            super("'stop;' cannot be used in a loop that also contains a 'yield': "
+                    + "a bare 'stop' has no value, but this loop must produce one", span);
         }
 
     }
