@@ -1,6 +1,7 @@
 package io.github.uniquepython.tyfe.interpreter;
 
-public sealed interface ExecResult permits ExecResult.Normal, ExecResult.Produce, ExecResult.Stop, ExecResult.Skip {
+public sealed interface ExecResult
+        permits ExecResult.Normal, ExecResult.Produce, ExecResult.Stop, ExecResult.Skip, ExecResult.Yield {
 
     record Normal() implements ExecResult {
     }
@@ -12,6 +13,9 @@ public sealed interface ExecResult permits ExecResult.Normal, ExecResult.Produce
     }
 
     record Skip() implements ExecResult {
+    }
+
+    record Yield(RuntimeValue value) implements ExecResult {
     }
 
 }
