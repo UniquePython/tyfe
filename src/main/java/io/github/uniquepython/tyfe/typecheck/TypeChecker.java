@@ -135,7 +135,8 @@ public final class TypeChecker {
     }
 
     private static boolean isTerminator(Stmt statement) {
-        return statement instanceof Stmt.Produce || statement instanceof Stmt.Stop || statement instanceof Stmt.Skip;
+        return statement instanceof Stmt.Produce || statement instanceof Stmt.Stop || statement instanceof Stmt.Skip
+                || statement instanceof Stmt.Yield;
     }
 
     private static Type checkIf(Expr.If ifExpr, TypeCheckContext ctx) {
@@ -170,7 +171,99 @@ public final class TypeChecker {
         }
 
         TypeCheckContext bodyCtx = ctx.withInsideLoop();
-        return checkBlock(whileExpr.body(), bodyCtx);
+        checkBlock(whileExpr.body(), bodyCtx);
+
+        YieldReachability reachability = analyzeYieldReachability(whileExpr.body(), bodyCtx);
+
+        if (reachability.reachableYieldSpans().isEmpty()) {
+            return Type.Nothing.NOTHING;
+        }
+
+        Type yieldType = reachability.yieldType();
+        Span firstSpan = reachability.reachableYieldSpans().getFirst();
+
+        if (anyReachableBareStop(whileExpr.body())) {
+            throw new TypeCheckError.BareStopWithYield(firstSpan);
+        }
+
+        if (!reachability.allPathsYield()) {
+            throw new TypeCheckError.LoopMayNotYield(yieldType, whileExpr.span());
+        }
+
+        return yieldType;
+    }
+
+    private record YieldReachability(boolean allPathsYield, Type yieldType, List<Span> reachableYieldSpans) {
+    }
+
+    private static YieldReachability analyzeYieldReachability(Expr.Block block, TypeCheckContext ctx) {
+        TypeCheckContext blockCtx = ctx.withNewScope();
+        List<Stmt> statements = block.statements();
+
+        if (statements.isEmpty()) {
+            return new YieldReachability(false, null, List.of());
+        }
+
+        Stmt last = statements.getLast();
+
+        return switch (last) {
+            case Stmt.Yield yield -> {
+                Type yieldType = checkExpr(yield.value(), blockCtx);
+                yield new YieldReachability(true, yieldType, List.of(yield.span()));
+            }
+            case Stmt.ExpressionStatement exprStmt when exprStmt.expression() instanceof Expr.If ifExpr ->
+                mergeBranches(analyzeYieldReachability(ifExpr.thenBranch(), blockCtx),
+                        analyzeElseBranch(ifExpr.elseBranch(), blockCtx), ifExpr.span());
+            default -> new YieldReachability(false, null, List.of());
+        };
+    }
+
+    private static YieldReachability analyzeElseBranch(Expr.ElseBranch elseBranch, TypeCheckContext ctx) {
+        return switch (elseBranch) {
+            case Expr.Block block -> analyzeYieldReachability(block, ctx);
+            case Expr.If ifExpr -> mergeBranches(analyzeYieldReachability(ifExpr.thenBranch(), ctx),
+                    analyzeElseBranch(ifExpr.elseBranch(), ctx), ifExpr.span());
+        };
+    }
+
+    private static YieldReachability mergeBranches(YieldReachability thenInfo, YieldReachability elseInfo,
+            Span span) {
+        List<Span> allSpans = new java.util.ArrayList<>(thenInfo.reachableYieldSpans());
+        allSpans.addAll(elseInfo.reachableYieldSpans());
+
+        Type unifiedType = thenInfo.yieldType() != null ? thenInfo.yieldType() : elseInfo.yieldType();
+
+        if (thenInfo.yieldType() != null && elseInfo.yieldType() != null
+                && thenInfo.yieldType() != elseInfo.yieldType()) {
+            throw new TypeCheckError.YieldTypeMismatch(thenInfo.yieldType(),
+                    thenInfo.reachableYieldSpans().getFirst(), elseInfo.yieldType(),
+                    elseInfo.reachableYieldSpans().getFirst());
+        }
+
+        return new YieldReachability(thenInfo.allPathsYield() && elseInfo.allPathsYield(), unifiedType, allSpans);
+    }
+
+    private static boolean anyReachableBareStop(Expr.Block block) {
+        for (Stmt statement : block.statements()) {
+            if (statement instanceof Stmt.Stop) {
+                return true;
+            }
+            if (statement instanceof Stmt.ExpressionStatement exprStmt
+                    && exprStmt.expression() instanceof Expr.If ifExpr && anyReachableBareStopInIf(ifExpr)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean anyReachableBareStopInIf(Expr.If ifExpr) {
+        if (anyReachableBareStop(ifExpr.thenBranch())) {
+            return true;
+        }
+        return switch (ifExpr.elseBranch()) {
+            case Expr.Block block -> anyReachableBareStop(block);
+            case Expr.If elseIf -> anyReachableBareStopInIf(elseIf);
+        };
     }
 
     public static Type checkStmt(Stmt stmt, TypeCheckContext ctx) {
@@ -181,6 +274,8 @@ public final class TypeChecker {
             case Stmt.Produce produce -> checkProduce(produce, ctx);
             case Stmt.Stop stop -> checkStop(stop, ctx);
             case Stmt.Skip skip -> checkSkip(skip, ctx);
+            case Stmt.Yield yieldStmt -> checkYield(yieldStmt, ctx);
+
         };
     }
 
@@ -208,6 +303,13 @@ public final class TypeChecker {
             throw new TypeCheckError.StopOrSkipOutsideLoop("skip", stmt.span());
         }
         return Type.Nothing.NOTHING;
+    }
+
+    private static Type checkYield(Stmt.Yield stmt, TypeCheckContext ctx) {
+        if (!ctx.insideLoop()) {
+            throw new TypeCheckError.YieldOutsideLoop(stmt.span());
+        }
+        return checkExpr(stmt.value(), ctx);
     }
 
     private static Type checkDeclaration(Stmt.Declaration stmt, TypeCheckContext ctx) {
